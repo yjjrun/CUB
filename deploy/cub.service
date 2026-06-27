@@ -1,0 +1,23 @@
+[Unit]
+Description=CUB: Canine Understanding Buddy
+After=network.target
+
+[Service]
+Type=simple
+User=cub
+Group=cub
+WorkingDirectory=/opt/cub
+Environment=HOST=127.0.0.1
+Environment=PORT=8000
+Environment=CUB_DATA_DIR=/var/lib/cub
+ExecStart=/usr/bin/python3 /opt/cub/server.py
+Restart=always
+RestartSec=3
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+ReadWritePaths=/var/lib/cub
+
+[Install]
+WantedBy=multi-user.target
