@@ -18,8 +18,13 @@ id cub &>/dev/null || useradd --system --home-dir "$APP_DIR" --shell /sbin/nolog
 
 # Fetch or update the code.
 if [ -d "$APP_DIR/.git" ]; then
-  git -C "$APP_DIR" fetch --depth 1 origin "$BRANCH"
-  git -C "$APP_DIR" checkout -B "$BRANCH" "origin/$BRANCH"
+  # Updating an existing checkout. Run git as the owning 'cub' user — running it
+  # as root over a cub-owned repo trips git's "dubious ownership" guard. Fetch the
+  # branch into an explicit tracking ref so switching branches works even though
+  # the original clone was shallow (it only tracks the branch it was cloned from).
+  chown -R cub:cub "$APP_DIR"
+  sudo -u cub git -C "$APP_DIR" fetch --depth 1 origin "$BRANCH:refs/remotes/origin/$BRANCH"
+  sudo -u cub git -C "$APP_DIR" checkout -B "$BRANCH" "refs/remotes/origin/$BRANCH"
 else
   git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
 fi
