@@ -1,0 +1,8 @@
+.git
+.gitignore
+*.xlsx
+docs/
+node_modules/
+data/cub.sqlite
+*.md
+.DS_Store

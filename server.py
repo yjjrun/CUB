@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import mimetypes
+import os
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -13,7 +14,9 @@ from urllib.parse import unquote, urlparse
 
 
 ROOT = Path(__file__).resolve().parent
-DATA_DIR = ROOT / "data"
+# CUB_DATA_DIR lets the host mount a persistent disk (e.g. Render) so the
+# SQLite database survives restarts and redeploys. Defaults to the repo's data/.
+DATA_DIR = Path(os.environ.get("CUB_DATA_DIR", ROOT / "data"))
 DB_PATH = DATA_DIR / "cub.sqlite"
 PUBLIC_DOMAIN = "https://cub-buddy.com"
 FACTOR_FIELDS = [
@@ -325,8 +328,9 @@ class CUBHandler(BaseHTTPRequestHandler):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the CUB: Canine Understanding Buddy prototype server.")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", default=4173, type=int)
+    # Hosts like Render inject HOST/PORT via the environment; fall back to local dev defaults.
+    parser.add_argument("--host", default=os.environ.get("HOST", "127.0.0.1"))
+    parser.add_argument("--port", default=int(os.environ.get("PORT", "4173")), type=int)
     args = parser.parse_args()
     init_db()
     httpd = ThreadingHTTPServer((args.host, args.port), CUBHandler)

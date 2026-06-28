@@ -613,30 +613,54 @@ function renderHome() {
 
       <section class="collab-section">
         <div class="section-title">
-          <p class="eyebrow">Future collaborators</p>
-          <h2>Pet links can live here later.</h2>
+          <p class="eyebrow">Pet resources</p>
+          <h2>Handy links for new dog parents.</h2>
         </div>
         <div class="collab-grid">
-          ${renderCollaboratorSlot("Pet news", "https://future-pet-news.example")}
-          ${renderCollaboratorSlot("Snacks", "https://future-snack-partner.example")}
-          ${renderCollaboratorSlot("Toys", "https://future-toy-partner.example")}
-          ${renderCollaboratorSlot("Shelter stories", "https://future-shelter-partner.example")}
+          ${renderCollaboratorSlot({
+            label: "Pet news",
+            description: "Heart-warming animal stories and the latest dog news.",
+            url: "https://www.thedodo.com",
+            host: "thedodo.com",
+            image: "/assets/link-news.jpg",
+          })}
+          ${renderCollaboratorSlot({
+            label: "Treats & snacks",
+            description: "Shop healthy treats and food for every life stage.",
+            url: "https://www.chewy.com",
+            host: "chewy.com",
+            image: "/assets/link-snacks.jpg",
+          })}
+          ${renderCollaboratorSlot({
+            label: "Toys & play",
+            description: "Enrichment toys and monthly play boxes for happy pups.",
+            url: "https://www.barkbox.com",
+            host: "barkbox.com",
+            image: "/assets/link-toys.jpg",
+          })}
+          ${renderCollaboratorSlot({
+            label: "Adoption & shelters",
+            description: "Find adoptable dogs and trusted rescues near you.",
+            url: "https://www.petfinder.com",
+            host: "petfinder.com",
+            image: "/assets/link-shelters.jpg",
+          })}
         </div>
       </section>
     </main>
   `;
 }
 
-function renderCollaboratorSlot(label, url) {
+function renderCollaboratorSlot({ label, description, url, host, image }) {
   return `
-    <article class="collab-card">
-      <div class="collab-placeholder"></div>
+    <a class="collab-card" href="${escapeHtml(url)}" target="_blank" rel="noreferrer noopener">
+      <img class="collab-thumb" src="${escapeHtml(image)}" alt="${escapeHtml(label)}" loading="lazy" />
       <div>
-        <h3>${label}</h3>
-        <p>Future collaborator website</p>
-        <span>${url}</span>
+        <h3>${escapeHtml(label)}</h3>
+        <p>${escapeHtml(description)}</p>
+        <span>${escapeHtml(host)} &rarr;</span>
       </div>
-    </article>
+    </a>
   `;
 }
 

@@ -207,15 +207,29 @@ img {
   border-radius: 8px;
   background: var(--paper);
   box-shadow: var(--shadow);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
-.collab-placeholder {
+.collab-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--coffee);
+  box-shadow: 0 10px 24px rgba(58, 36, 21, 0.16);
+}
+
+.collab-card:focus-visible {
+  outline: 2px solid var(--coffee);
+  outline-offset: 2px;
+}
+
+.collab-thumb {
   aspect-ratio: 1;
+  width: 100%;
   border-radius: 8px;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0)),
-    var(--slot);
-  border: 1px solid #c8c1b8;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  display: block;
 }
 
 .collab-card h3 {
@@ -230,6 +244,12 @@ img {
   color: var(--mocha);
   font-size: 0.86rem;
   overflow-wrap: anywhere;
+}
+
+.collab-card span {
+  margin-top: 6px;
+  font-weight: 700;
+  color: var(--coffee);
 }
 
 .intro-strip {
