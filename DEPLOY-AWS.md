@@ -1,116 +1,213 @@
-# Deploying CUB to AWS (EC2 + Route 53)
+# Deploying CUB to AWS (EC2 + nginx)
 
-This hosts CUB on a single Amazon Linux 2023 EC2 instance: `server.py` runs as a
-systemd service behind nginx, SQLite lives on the persistent EBS root volume, and
-a stable Elastic IP fronts the box. All AWS, no third-party PaaS.
+CUB runs on a single Amazon Linux 2023 EC2 instance: `server.py` runs as a systemd
+service behind nginx, SQLite lives on the persistent EBS root volume, and a stable
+Elastic IP fronts the box. TLS is from Let's Encrypt. DNS can be any provider — the
+live site uses Cloudflare.
 
 ```
-Browser → Route 53 (cub-buddy.com) → Elastic IP → EC2
+Browser → DNS (cub-buddy.com) → Elastic IP → EC2
             └ nginx (80/443, TLS) → server.py (127.0.0.1:8000) → SQLite on EBS
 ```
 
-Estimated cost: ~$4–8/mo (t4g.micro/small + 20 GB gp3 + Elastic IP).
+Estimated cost: ~$4–8/mo (t4g.micro + 20 GB gp3 + Elastic IP).
+
+> The examples deploy the `main` branch. If you haven't merged the deployment
+> changes into `main` yet, substitute your branch name (e.g. `1st-iteration`).
 
 ## Prerequisites
 
-- AWS CLI configured (`aws configure`) with your account.
-- An EC2 key pair in your target region (EC2 → Key Pairs → Create). Note its name.
-- The branch is deployed from `main` by default — merge `1st-iteration` → `main`
-  first, or pass `Branch=1st-iteration` in step 1.
+- AWS CLI configured (`aws configure`).
+- An EC2 key pair in your target region:
+  ```bash
+  aws ec2 create-key-pair --region <region> --key-name cub-buddy-key \
+    --query KeyMaterial --output text > ~/.ssh/cub-buddy-key.pem
+  chmod 400 ~/.ssh/cub-buddy-key.pem
+  ```
 
-## 1. Launch the infrastructure (CloudFormation)
+## 1. Launch the infrastructure
 
-From the repo root:
+Pick whichever matches your IAM permissions.
+
+### Option A — CloudFormation (one command)
+
+Needs `cloudformation:*` and `ssm:GetParameter`.
 
 ```bash
 aws cloudformation deploy \
   --template-file aws/cloudformation.yaml \
   --stack-name cub-buddy \
   --parameter-overrides \
-      KeyName=<your-key-pair-name> \
+      KeyName=cub-buddy-key \
       SshLocation=$(curl -s https://checkip.amazonaws.com)/32 \
       Branch=main
-```
 
-`SshLocation` above locks SSH to your current IP. Then read the outputs:
-
-```bash
 aws cloudformation describe-stacks --stack-name cub-buddy \
   --query "Stacks[0].Outputs" --output table
 ```
 
-Wait ~2–3 minutes for user-data to finish, then open `http://<PublicIp>/` — you
-should see the CUB home page over plain HTTP.
+### Option B — direct EC2 CLI (no CloudFormation needed)
+
+How the live site was actually deployed (the account lacked CloudFormation/SSM
+permissions). Needs only EC2 create permissions.
+
+```bash
+REGION=us-east-2
+VPC=$(aws ec2 describe-vpcs --region $REGION --filters Name=isDefault,Values=true \
+  --query "Vpcs[0].VpcId" --output text)
+SUBNET=$(aws ec2 describe-subnets --region $REGION \
+  --filters Name=vpc-id,Values=$VPC Name=default-for-az,Values=true \
+  --query "Subnets[0].SubnetId" --output text)
+AMI=$(aws ec2 describe-images --region $REGION --owners amazon \
+  --filters "Name=name,Values=al2023-ami-2023.*-arm64" "Name=state,Values=available" \
+  --query "sort_by(Images, &CreationDate)[-1].ImageId" --output text)
+MYIP=$(curl -s https://checkip.amazonaws.com)/32
+
+# Security group: SSH from your IP, HTTP/HTTPS from anywhere
+SG=$(aws ec2 create-security-group --region $REGION --vpc-id $VPC \
+  --group-name cub-buddy-sg --description "CUB web 80/443 + ssh" \
+  --query GroupId --output text)
+aws ec2 authorize-security-group-ingress --region $REGION --group-id $SG --ip-permissions \
+  "IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=$MYIP}]" \
+  "IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges=[{CidrIp=0.0.0.0/0}]" \
+  "IpProtocol=tcp,FromPort=443,ToPort=443,IpRanges=[{CidrIp=0.0.0.0/0}]"
+
+# User-data clones the repo and provisions the host
+cat > /tmp/cub-userdata.sh <<'EOF'
+#!/bin/bash
+set -euxo pipefail
+dnf -y install git
+git clone --depth 1 --branch main https://github.com/yjjrun/CUB.git /opt/cub
+CUB_BRANCH=main bash /opt/cub/deploy/bootstrap.sh
+EOF
+
+IID=$(aws ec2 run-instances --region $REGION \
+  --image-id $AMI --instance-type t4g.micro --key-name cub-buddy-key \
+  --security-group-ids $SG --subnet-id $SUBNET \
+  --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":20,"VolumeType":"gp3","DeleteOnTermination":false}}]' \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=cub-buddy}]' \
+  --user-data file:///tmp/cub-userdata.sh \
+  --query "Instances[0].InstanceId" --output text)
+aws ec2 wait instance-running --region $REGION --instance-ids $IID
+
+# Stable Elastic IP
+ALLOC=$(aws ec2 allocate-address --region $REGION --domain vpc --query AllocationId --output text)
+aws ec2 associate-address --region $REGION --instance-id $IID --allocation-id $ALLOC
+aws ec2 describe-addresses --region $REGION --allocation-ids $ALLOC \
+  --query "Addresses[0].PublicIp" --output text
+```
+
+Wait ~2–3 min for user-data to finish, then open `http://<ElasticIP>/`.
 
 ## 2. Register the domain
 
-Easiest within AWS: **Route 53 → Registered domains → Register** `cub-buddy.com`.
-This auto-creates a hosted zone. (If you buy it at GoDaddy instead, create a Route 53
-hosted zone for the domain and set GoDaddy's nameservers to the zone's NS records.)
+Any registrar works. **Route 53 registration requires a paid AWS plan** — Free Tier
+accounts are blocked, and newly upgraded accounts can hit a manual verification hold.
+The live site is registered with **Cloudflare** (~$10/yr flat, free DNS + WHOIS
+privacy); GoDaddy / Namecheap are also fine.
 
 ## 3. Point DNS at the instance
 
-In the Route 53 hosted zone for `cub-buddy.com`, create two **A** records pointing
-at the `PublicIp` from step 1:
+Add two A records at your DNS provider pointing to the Elastic IP:
 
-| Name              | Type | Value          |
-|-------------------|------|----------------|
-| cub-buddy.com     | A    | `<PublicIp>`   |
-| www.cub-buddy.com | A    | `<PublicIp>`   |
+| Type | Name  | Value         |
+|------|-------|---------------|
+| A    | `@`   | `<ElasticIP>` |
+| A    | `www` | `<ElasticIP>` |
 
-CLI alternative:
+**Cloudflare:** set both records to **DNS only** (grey cloud, not proxied) so Let's
+Encrypt can validate against the origin. After the cert is issued you may switch to
+proxied (orange, SSL mode "Full (strict)") for Cloudflare's CDN/WAF.
 
-```bash
-ZONE_ID=$(aws route53 list-hosted-zones-by-name --dns-name cub-buddy.com \
-  --query "HostedZones[0].Id" --output text)
-aws route53 change-resource-record-sets --hosted-zone-id "$ZONE_ID" \
-  --change-batch '{"Changes":[
-    {"Action":"UPSERT","ResourceRecordSet":{"Name":"cub-buddy.com","Type":"A","TTL":300,"ResourceRecords":[{"Value":"<PublicIp>"}]}},
-    {"Action":"UPSERT","ResourceRecordSet":{"Name":"www.cub-buddy.com","Type":"A","TTL":300,"ResourceRecords":[{"Value":"<PublicIp>"}]}}
-  ]}'
-```
-
-Wait for DNS to resolve: `dig +short cub-buddy.com` should return the Elastic IP.
+Confirm: `dig +short cub-buddy.com` returns the Elastic IP.
 
 ## 4. Enable HTTPS (Let's Encrypt)
 
-SSH in and run certbot — it edits the nginx config to add the 443 server block and
-an HTTP→HTTPS redirect:
+SSH in, install certbot, issue the cert (certbot edits nginx to add the 443 block and
+an HTTP→HTTPS redirect), and add a renewal timer:
 
 ```bash
-ssh -i <your-key>.pem ec2-user@<PublicIp>
+ssh -i ~/.ssh/cub-buddy-key.pem ec2-user@<ElasticIP>
+
 sudo dnf -y install python3-pip augeas-libs
 sudo python3 -m pip install certbot certbot-nginx
-sudo certbot --nginx \
-  -d cub-buddy.com -d www.cub-buddy.com \
+sudo certbot --nginx -d cub-buddy.com -d www.cub-buddy.com \
   -m you@example.com --agree-tos --redirect -n
-# Auto-renewal:
-echo "0 3 * * * root certbot renew --quiet" | sudo tee /etc/cron.d/certbot-renew
+
+# Auto-renewal via systemd timer (Amazon Linux 2023 has no cron.d by default)
+CB=$(command -v certbot)
+sudo tee /etc/systemd/system/certbot-renew.service >/dev/null <<UNIT
+[Unit]
+Description=Certbot renewal
+[Service]
+Type=oneshot
+ExecStart=$CB renew --quiet --deploy-hook "systemctl reload nginx"
+UNIT
+sudo tee /etc/systemd/system/certbot-renew.timer >/dev/null <<UNIT
+[Unit]
+Description=Run certbot renew daily
+[Timer]
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=3600
+Persistent=true
+[Install]
+WantedBy=timers.target
+UNIT
+sudo systemctl daemon-reload
+sudo systemctl enable --now certbot-renew.timer
+sudo certbot renew --dry-run
 ```
 
 Visit **https://cub-buddy.com/** — done.
 
-## Updating the app later
+## Seed the demo dogs (optional)
 
-SSH in and re-run the idempotent bootstrap (pulls latest code + restarts):
+The live DB starts empty. To show Mochi and Rocket on the match page, POST them to
+the API (their photos ship in `assets/`):
 
 ```bash
-sudo CUB_BRANCH=main bash /opt/cub/deploy/bootstrap.sh
-# or, for a quick code-only refresh:
+curl -X POST https://cub-buddy.com/api/dogs -H "Content-Type: application/json" -d '{
+  "name":"Mochi","shelter":"Sunny Paws Shelter","contactUrl":"https://example.com/mochi",
+  "breed":"Labrador Retriever","ageYears":3,"sex":"Female","size":"Medium","color":"Golden",
+  "imageUrl":"/assets/mochi.jpg","hdbApproved":true,"homeFit":"Most homes","exerciseNeed":"Moderate",
+  "cbarqFactors":{"strangerAggression":0.3,"ownerAggression":0.1,"dogAggressionFear":0.4,"trainability":3.6,"chasing":1.0,"strangerFear":0.5,"nonsocialFear":0.5,"dogFear":0.5,"separation":0.7,"touchSensitivity":0.6,"excitability":1.7,"attachment":2.0,"energy":2.0}}'
+```
+
+(Or enter dogs through the partner intake at `/partner`, access code `CUBSHOP`.)
+
+## Updating the app later
+
+```bash
+ssh -i ~/.ssh/cub-buddy-key.pem ec2-user@<ElasticIP>
+sudo CUB_BRANCH=main bash /opt/cub/deploy/bootstrap.sh   # pull latest + restart
+# or a quick code-only refresh:
 sudo git -C /opt/cub pull && sudo systemctl restart cub
 ```
 
 ## Operations notes
 
-- **Data persistence:** the SQLite DB is at `/var/lib/cub/cub.sqlite` (outside the
-  repo, so redeploys never overwrite it) on the EBS root volume, which has
-  `DeleteOnTermination: false`. Back it up with
-  `sudo cp /var/lib/cub/cub.sqlite /var/lib/cub/cub.$(date +%F).bak`.
-- **Empty on first boot:** the live DB starts empty by design (no seeded dogs). To
-  show the demo dogs, add them via the partner intake (code `CUBSHOP`) or copy a
-  seeded `cub.sqlite` into `/var/lib/cub/` and `sudo systemctl restart cub`.
-- **Logs:** `sudo journalctl -u cub -f` (app) and `/var/log/nginx/` (proxy).
-- **Security:** keep `SshLocation` scoped to your IP. The app has no auth beyond the
+- **Data persistence:** SQLite is at `/var/lib/cub/cub.sqlite` (outside the repo, so
+  redeploys never overwrite it) on the EBS root volume (`DeleteOnTermination: false`).
+  Back up: `sudo cp /var/lib/cub/cub.sqlite /var/lib/cub/cub.$(date +%F).bak`.
+- **Logs:** `sudo journalctl -u cub -f` (app); `/var/log/nginx/` (proxy).
+- **Security:** keep the SSH rule scoped to your IP; the app's only gate is the
   partner access code — fine for a prototype, not for real adopter data.
-- **Tear down:** `aws cloudformation delete-stack --stack-name cub-buddy` (the EIP
-  and, because of DeleteOnTermination, the root volume may need manual cleanup).
+- **Tear down (direct-CLI deploy):**
+  ```bash
+  aws ec2 terminate-instances --region $REGION --instance-ids $IID
+  aws ec2 release-address --region $REGION --allocation-id $ALLOC
+  aws ec2 delete-security-group --region $REGION --group-id $SG
+  ```
+  CloudFormation deploys: `aws cloudformation delete-stack --stack-name cub-buddy`.
+
+## Live deployment reference
+
+| | |
+|---|---|
+| Region          | us-east-2 (Ohio)                              |
+| Instance        | t4g.micro, Amazon Linux 2023 (arm64)          |
+| Elastic IP      | 3.16.249.173                                  |
+| Key pair        | cub-buddy-key (`~/.ssh/cub-buddy-key.pem`)     |
+| DNS / registrar | Cloudflare (DNS-only A records)               |
+| TLS             | Let's Encrypt, auto-renew via systemd timer   |
+| Branch deployed | `main` (after PR #1 merges; live box currently runs `1st-iteration`) |
