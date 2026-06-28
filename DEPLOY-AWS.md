@@ -81,7 +81,7 @@ Confirm with `dig +short cub-buddy.com`.
 ## 4. HTTPS
 
 ```bash
-ssh -i ~/.ssh/cub-buddy-key.pem ec2-user@<ElasticIP>
+ssh -i ~/.ssh/cub-buddy-key.pem ec2-user@cub-buddy.com
 
 sudo dnf -y install python3-pip augeas-libs
 sudo python3 -m pip install certbot certbot-nginx
@@ -114,7 +114,10 @@ Visit **https://cub-buddy.com/**.
 
 ## Operations
 
-- **Update:** `ssh ...` then `sudo CUB_BRANCH=main bash /opt/cub/deploy/bootstrap.sh`
+- **SSH:** `ssh -i ~/.ssh/cub-buddy-key.pem ec2-user@cub-buddy.com` (resolves via
+  DNS — no IP to track; if you later proxy DNS through Cloudflare, SSH to the Elastic
+  IP from `aws ec2 describe-addresses` instead).
+- **Update:** SSH in, then `sudo CUB_BRANCH=main bash /opt/cub/deploy/bootstrap.sh`
   (pulls latest + restarts).
 - **Data:** SQLite at `/var/lib/cub/cub.sqlite` (outside the repo; survives redeploys).
   Back up with `sudo cp /var/lib/cub/cub.sqlite /var/lib/cub/cub.$(date +%F).bak`.
@@ -126,6 +129,6 @@ Visit **https://cub-buddy.com/**.
 
 ## Live reference
 
-us-east-2 · t4g.micro · Elastic IP `<ElasticIP>` · key `cub-buddy-key` ·
-Cloudflare DNS · Let's Encrypt (systemd auto-renew) · branch `main`
-(live box currently runs `1st-iteration`).
+us-east-2 · t4g.micro · key `cub-buddy-key` · Cloudflare DNS · Let's Encrypt
+(systemd auto-renew) · branch `main` (live box currently runs `1st-iteration`).
+Current IP: `dig +short cub-buddy.com`.
