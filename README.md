@@ -35,15 +35,6 @@ settings in production):
 The SQLite database lives at `$CUB_DATA_DIR/cub.sqlite`. In production `CUB_DATA_DIR`
 points at a persistent disk so data survives restarts and redeploys.
 
-### Share on the same Wi-Fi
-
-```bash
-python3 server.py --host 0.0.0.0 --port 4173
-```
-
-Friends on the same network can open your machine's LAN URL, e.g.
-http://172.20.10.2:4173/
-
 ## Pages
 
 - `/` — public home page (hero + pet-resource links)
