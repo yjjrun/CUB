@@ -63,5 +63,5 @@ Encrypt TLS. See **[DEPLOY-AWS.md](DEPLOY-AWS.md)** for the full runbook. A
 | `server.py`           | Stdlib HTTP server + JSON API + SQLite           |
 | `assets/`             | Logos and dog images                             |
 | `data/cub.sqlite`     | Dog records                                      |
-| `aws/`, `deploy/`     | AWS deployment template and provisioning scripts |
+| `deploy/`             | Host provisioning scripts (systemd, nginx, bootstrap) |
 | `docs/`               | Research summary and references                  |
