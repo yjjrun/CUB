@@ -126,6 +126,6 @@ Visit **https://cub-buddy.com/**.
 
 ## Live reference
 
-us-east-2 · t4g.micro · Elastic IP `3.16.249.173` · key `cub-buddy-key` ·
+us-east-2 · t4g.micro · Elastic IP `<ElasticIP>` · key `cub-buddy-key` ·
 Cloudflare DNS · Let's Encrypt (systemd auto-renew) · branch `main`
 (live box currently runs `1st-iteration`).
