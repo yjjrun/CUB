@@ -5,7 +5,7 @@ Website for matching humans and dogs using:
 - A public consumer home page with curated pet-resource links
 - A public match quiz (MBTI-style personality + lifestyle + housing + preferences)
 - A private partner intake page for shelters/pet shops
-- C-BARQ item-level intake with 101 questions
+- C-BARQ short-form item-level intake with 42 questions
 - SQLite dog storage
 - MBTI-style, lifestyle, housing, experience, and preference-based matching
 

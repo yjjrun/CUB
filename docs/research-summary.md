@@ -8,7 +8,7 @@ This prototype references the documents supplied with the project:
 - `The Paw Project Personality Clustering.pdf`: Dog behavior is classified into seven clusters: Gentle Wallflowers, Driven Guardians, Golden Hearts, Joyful Sparks, Cautious Companions, Gentle Giants, and Fiery Dynamos.
 - `PAW PROJ mbti to doggy.pdf`: The top MBTI-to-cluster matches are used for explanation and score overrides when a type appears in the supplied ranking.
 - `dog breeds & lifestyle.pdf`: Breed rules are used for HDB suitability and exercise bands.
-- `dog-aggression-questionnaire.pdf`: Partner intake presents all 101 attached C-BARQ items and converts those answers into the 13 behavior factors: aggression, trainability, chasing, fear, separation, touch sensitivity, excitability, attachment, and energy.
+- `CBARQ_short-final_copy.pdf`: Partner intake presents the 42-item short C-BARQ form and maps those answers into the 13 behavior factors used by matching: aggression, trainability, chasing, fear, separation, touch sensitivity, excitability, attachment, and energy.
 
 External research checked on 2026-06-14:
 

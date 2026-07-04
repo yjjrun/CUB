@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  FACTORS, CBARQ_SECTIONS, CBARQ_OPTIONS, DEFAULT_CBARQ_ANSWERS,
+  FACTORS, CBARQ_SECTIONS, CBARQ_OPTIONS, DEFAULT_CBARQ_ANSWERS, CBARQ_TOTAL_QUESTIONS,
   BREED_RULES, deriveCbarqFactors, cbarqAnsweredCount,
 } from "../lib/cbarq.js";
 import { PARTNER_ACCESS_CODE } from "../lib/matching.js";
@@ -133,9 +133,9 @@ function Intake() {
           </div>
 
           <div className="panel-head compact">
-            <p className="eyebrow">C-BARQ questionnaire</p>
+            <p className="eyebrow">C-BARQ short form</p>
             <h2>Behavior questions</h2>
-            <p className="helper-copy">{answered} of 101 questions answered. N/A is accepted when the situation has not been observed.</p>
+            <p className="helper-copy">{answered} of {CBARQ_TOTAL_QUESTIONS} questions answered. N/A is accepted when the situation has not been observed.</p>
           </div>
           <div className="cbarq-sections">
             {CBARQ_SECTIONS.map((section) => (

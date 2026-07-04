@@ -110,19 +110,27 @@ export function computeMbti(profile) {
   return { type, scores };
 }
 
-function ownerVector(type) {
-  const has = (letter) => type.includes(letter);
-  const stimulation = clamp(5 + (has("E") ? 3 : -3) + (has("N") ? 1 : -1), 0, 10);
-  const structure = clamp(5 + (has("J") ? 3 : -3) + (has("S") ? 1 : -1), 0, 10);
-  const empathy = has("F") ? 8 : 4;
-  const firmness = clamp(5 + (has("J") ? 2 : -2) + (has("T") ? 2 : -2) + (has("E") ? 0.5 : -0.5), 0, 10);
+function axisLean(scores, axis) {
+  const maxScore = MBTI_QUESTIONS.filter(([, questionAxis]) => questionAxis === axis).length * 2;
+  return maxScore ? clamp((scores[axis] || 0) / maxScore, -1, 1) : 0;
+}
+
+function ownerVector(scores) {
+  const ei = axisLean(scores, "EI"); // -1 = I, +1 = E
+  const sn = axisLean(scores, "SN"); // -1 = N, +1 = S
+  const tf = axisLean(scores, "TF"); // -1 = F, +1 = T
+  const jp = axisLean(scores, "JP"); // -1 = P, +1 = J
+
+  const stimulation = clamp(5 + 3 * ei - sn, 0, 10);
+  const structure = clamp(5 + 3 * jp + sn, 0, 10);
+  const empathy = clamp(6 - 2 * tf, 0, 10);
+  const firmness = clamp(5 + 2 * jp + 2 * tf + 0.5 * ei, 0, 10);
   return { stimulation, structure, empathy, firmness };
 }
 
-function mbtiCompatibility(type, clusterName) {
+function mbtiCompatibility(mbti, clusterName) {
   const cluster = CLUSTERS[clusterName] || CLUSTERS["Golden Hearts"];
-  if (cluster.top[type]) return cluster.top[type];
-  const owner = ownerVector(type);
+  const owner = ownerVector(mbti.scores);
   let weightedDistance = 0;
   for (const key of Object.keys(cluster.demand)) {
     weightedDistance += cluster.weights[key] * Math.abs(owner[key] - cluster.demand[key]);
@@ -148,7 +156,7 @@ function preferenceFit(dog, preferences) {
 }
 
 export function scoreDog(dog, profile) {
-  const mbti = computeMbti(profile).type;
+  const mbti = computeMbti(profile);
   const exerciseGap = Math.abs(Number(profile.lifestyle.exerciseMinutes) - targetMinutes(dog.exerciseNeed));
   const exerciseScore = clamp(100 - exerciseGap * 1.2, 0, 100);
   const away = Number(profile.lifestyle.hoursAway);
@@ -188,7 +196,7 @@ export function scoreDog(dog, profile) {
   return {
     dog,
     score: finalScore,
-    mbti,
+    mbti: mbti.type,
     subscores: {
       lifestyle: Math.round(lifestyleScore),
       housing: Math.round(housingScore),

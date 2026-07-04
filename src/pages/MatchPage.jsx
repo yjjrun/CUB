@@ -199,7 +199,7 @@ function comparisonRows(match, profile) {
     ? "experienced"
     : dog.cluster === "Cautious Companions" ? "some" : "first-time";
   return [
-    { label: "Personality", value: dog.cluster, matched: subscores.personality >= 60 },
+    { label: "Personality", value: `${subscores.personality}% fit with ${dog.cluster}`, matched: subscores.personality >= 60 },
     { label: "Energy level", value: dogExercise, matched: subscores.lifestyle >= 65 },
     { label: "Housing", value: dog.hdbApproved ? "HDB-approved" : "Not HDB-approved", matched: subscores.housing >= 70 },
     { label: "Experience", value: experienceLabel(dog.cluster), matched: rank[profile.lifestyle.experience] >= rank[needed] },
