@@ -67,7 +67,11 @@ img {
   gap: 40px;
   min-height: 92px;
   padding: 18px 48px;
-  background: rgba(255, 250, 245, 0.9);
+  background:
+    radial-gradient(circle at 72% 18%, rgba(247, 234, 211, 0.86), transparent 32rem),
+    radial-gradient(circle at 10% 14%, rgba(255, 250, 245, 0.9), transparent 28rem),
+    linear-gradient(rgba(251, 247, 241, 0.82), rgba(251, 247, 241, 0.82)),
+    var(--latte);
   border-bottom: 0;
   backdrop-filter: blur(18px);
 }
