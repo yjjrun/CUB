@@ -1,6 +1,6 @@
 const PET_LINKS = [
   { label: "Pet news", description: "Heart-warming animal stories and the latest dog news.", url: "https://www.thedodo.com", host: "thedodo.com", image: "/assets/link-news.jpg" },
-  { label: "Treats & snacks", description: "Shop healthy treats and food for every life stage.", url: "https://www.chewy.com", host: "chewy.com", image: "/assets/link-snacks.jpg" },
+  { label: "Food & Snacks", description: "Shop wholesome meals and snacks for every life stage.", url: "https://www.bombom.com/", host: "bombom.com", image: "/assets/link-food-snacks.png" },
   { label: "Toys & play", description: "Enrichment toys and monthly play boxes for happy pups.", url: "https://www.barkbox.com", host: "barkbox.com", image: "/assets/link-toys.jpg" },
   { label: "Adoption & shelters", description: "Find adoptable dogs and trusted rescues near you.", url: "https://www.petfinder.com", host: "petfinder.com", image: "/assets/link-shelters.jpg" },
 ];
