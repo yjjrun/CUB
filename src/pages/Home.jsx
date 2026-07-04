@@ -15,11 +15,23 @@ export default function Home({ navigate }) {
           <p className="eyebrow">Canine Understanding Buddy</p>
           <h1>Understand your lifestyle.<br />Meet dogs who fit it.</h1>
           <p>
-            CUB helps adopters compare personality, daily routine, home setup, and future pet
-            preferences against dogs added by trusted shelters and pet shops.
+            CUB helps adopters find dogs that fit their lifestyle, experience, and home environment.
+          </p>
+          <p>
+            Our matching algorithm profiles each dog across key behavioural traits such as energy
+            level, sociability, trainability, fearfulness, attachment, separation-related behaviour,
+            and sensitivity. This approach is informed by established canine behaviour research and
+            draws on large-scale behavioural datasets, alongside collaboration with academic
+            researchers from institutions including the University of Pennsylvania and the National
+            University of Singapore. Adopters are then matched based on their routine, activity level,
+            household, experience with dogs, and ability to meet each dog's needs.
+          </p>
+          <p>
+            Instead of matching based only on breed or appearance, CUB asks: which dog is most likely
+            to thrive in your home?
           </p>
           <div className="hero-actions">
-            <button className="primary-action hero-action" onClick={() => navigate("match")}>Match now!</button>
+            <button className="primary-action hero-action" onClick={() => navigate("match")}>Find your pet!</button>
           </div>
         </div>
         <div className="hero-logo-card">
