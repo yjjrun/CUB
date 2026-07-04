@@ -167,6 +167,13 @@ img {
   width: min(280px, 100%);
 }
 
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
 .hero-logo-card {
   display: grid;
   place-items: center;

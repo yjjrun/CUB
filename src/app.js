@@ -288,7 +288,7 @@ const DEFAULT_CBARQ_ANSWERS = Object.fromEntries(
 );
 
 function modeFromPath() {
-  if (location.pathname === "/partner") return "partner";
+  if (location.pathname === "/partner" || location.pathname === "/shelter") return "partner";
   if (location.pathname === "/match") return "match";
   return "home";
 }
@@ -363,7 +363,7 @@ async function loadDogs() {
 
 function setMode(mode) {
   state.mode = mode;
-  const path = mode === "partner" ? "/partner" : mode === "match" ? "/match" : "/";
+  const path = mode === "partner" ? "/shelter" : mode === "match" ? "/match" : "/";
   history.pushState({}, "", path);
   render();
 }
@@ -590,6 +590,7 @@ function renderHeader() {
       <nav class="nav-pills" aria-label="Site areas">
         <button class="${state.mode === "home" ? "active" : ""}" data-nav="home">Home</button>
         <button class="${state.mode === "match" ? "active" : ""}" data-nav="match">Match now!</button>
+        <button class="${state.mode === "partner" ? "active" : ""}" data-nav="partner">Shelter intake</button>
       </nav>
     </header>
   `;
@@ -604,7 +605,10 @@ function renderHome() {
           <p class="eyebrow">Canine Understanding Buddy</p>
           <h1>Understand your lifestyle. Meet dogs who fit it.</h1>
           <p>CUB helps adopters compare personality, daily routine, home setup, and future pet preferences against dogs added by trusted shelters and pet shops.</p>
-          <button class="primary-action hero-action" data-nav="match">Match now!</button>
+          <div class="hero-actions">
+            <button class="primary-action hero-action" data-nav="match">Match now!</button>
+            <button class="secondary-action hero-action" data-nav="partner">Shelter questions</button>
+          </div>
         </div>
         <div class="hero-logo-card">
           <img src="${APP_LOGO}" alt="CUB dog logo" />
@@ -830,7 +834,7 @@ function renderPartner() {
       <section class="intro-strip partner">
         <div>
           <p class="eyebrow">Private shelter and pet shop portal</p>
-          <h1>Add dogs to the adoption database.</h1>
+          <h1>Answer shelter questions for each dog.</h1>
         </div>
         <div class="stat-block">
           <strong>${state.dogs.length}</strong>
@@ -912,7 +916,7 @@ function renderPartnerAccess() {
     <main class="screen partner-screen">
       <section class="access-card panel">
         <div>
-          <p class="eyebrow">Private pet shop portal</p>
+          <p class="eyebrow">Private shelter and pet shop portal</p>
           <h1>Partner access required.</h1>
           <p>Only approved shelters and pet shops should enter dog records into CUB.</p>
         </div>

@@ -39,13 +39,14 @@ points at a persistent disk so data survives restarts and redeploys.
 
 - `/` — public home page (hero + pet-resource links)
 - `/match` — public match quiz and results
-- `/partner` — locked partner intake page
+- `/shelter` — locked shelter question/intake page
+- `/partner` — old alias for the shelter intake page
 
 Partner access code: `CUBSHOP`
 
 ## Data
 
-The dog database starts empty; partners add dogs through `/partner`, which stores
+The dog database starts empty; partners add dogs through `/shelter`, which stores
 them in `data/cub.sqlite`. Consumer matching only reads saved records. Two sample
 dogs (Mochi, Rocket) are bundled for demos.
 

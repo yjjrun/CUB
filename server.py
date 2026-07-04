@@ -302,7 +302,7 @@ class CUBHandler(BaseHTTPRequestHandler):
             self.send_json({"error": "Request body must be JSON."}, HTTPStatus.BAD_REQUEST)
 
     def serve_static(self, raw_path: str) -> None:
-        if raw_path in {"/", "/partner"}:
+        if raw_path in {"/", "/match", "/partner", "/shelter"}:
             target = ROOT / "index.html"
         else:
             safe_path = unquote(raw_path).lstrip("/")
