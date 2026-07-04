@@ -1,5 +1,3 @@
-import { APP_LOGO } from "../lib/matching.js";
-
 const PET_LINKS = [
   { label: "Pet news", description: "Heart-warming animal stories and the latest dog news.", url: "https://www.thedodo.com", host: "thedodo.com", image: "/assets/link-news.jpg" },
   { label: "Treats & snacks", description: "Shop healthy treats and food for every life stage.", url: "https://www.chewy.com", host: "chewy.com", image: "/assets/link-snacks.jpg" },
@@ -10,10 +8,10 @@ const PET_LINKS = [
 export default function Home({ navigate }) {
   return (
     <main className="screen home-screen">
-      <section className="home-hero panel">
+      <section className="home-hero">
         <div className="hero-copy">
           <p className="eyebrow">Canine Understanding Buddy</p>
-          <h1>Understand your lifestyle.<br />Meet dogs who fit it.</h1>
+          <h1>Understand your lifestyle. Meet dogs who fit it.</h1>
           <p>
             CUB helps adopters find dogs that fit their lifestyle, experience, and home environment.
           </p>
@@ -46,10 +44,42 @@ export default function Home({ navigate }) {
           </p>
           <div className="hero-actions">
             <button className="primary-action hero-action" onClick={() => navigate("match")}>Meet your pet!</button>
+            <button className="secondary-action hero-secondary" onClick={() => navigate("match")}>See how matching works</button>
           </div>
         </div>
-        <div className="hero-logo-card">
-          <img src={APP_LOGO} alt="CUB dog logo" />
+        <div className="match-preview" aria-label="Example dog match preview">
+          <div className="dog-orbit">
+            <img src="/assets/mochi.jpg" alt="Matched dog preview" />
+          </div>
+          <div className="preview-card compatibility-card">
+            <span>Compatibility</span>
+            <strong>92<i>%</i></strong>
+            <b>Match</b>
+            <p>Great potential for a happy life together.</p>
+            <div className="mini-meter"><span style={{ width: "92%" }} /></div>
+          </div>
+          <div className="preview-card dog-card">
+            <img src="/assets/mochi.jpg" alt="" />
+            <div>
+              <h3>Sunny <small>2 yrs</small></h3>
+              <p>Golden Retriever Mix</p>
+              <span>Rescue Hub, Singapore</span>
+            </div>
+            <dl>
+              <div><dt>Energy</dt><dd><span style={{ width: "76%" }} /></dd></div>
+              <div><dt>Sociability</dt><dd><span style={{ width: "88%" }} /></dd></div>
+              <div><dt>Trainability</dt><dd><span style={{ width: "82%" }} /></dd></div>
+            </dl>
+          </div>
+          <div className="preview-card lifestyle-card">
+            <h3>Your lifestyle</h3>
+            <ul>
+              <li>Active walks</li>
+              <li>Experienced adopter</li>
+              <li>Apartment living</li>
+              <li>Calmer evenings</li>
+            </ul>
+          </div>
         </div>
       </section>
 

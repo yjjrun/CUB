@@ -24,12 +24,19 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   background:
+    radial-gradient(circle at 72% 18%, rgba(247, 234, 211, 0.86), transparent 32rem),
+    radial-gradient(circle at 10% 14%, rgba(255, 250, 245, 0.9), transparent 28rem),
     linear-gradient(rgba(251, 247, 241, 0.82), rgba(251, 247, 241, 0.82)),
     var(--latte);
 }
@@ -58,9 +65,9 @@ img {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 16px 26px;
-  background: rgba(251, 247, 241, 0.94);
-  border-bottom: 1px solid var(--line);
+  padding: 18px 56px;
+  background: rgba(251, 247, 241, 0.72);
+  border-bottom: 1px solid rgba(218, 200, 184, 0.54);
   backdrop-filter: blur(16px);
 }
 
@@ -123,7 +130,7 @@ img {
   position: relative;
   width: min(1440px, 100%);
   margin: 0 auto;
-  padding: 30px 26px 46px;
+  padding: 44px 56px 46px;
 }
 
 .screen::before {
@@ -141,29 +148,33 @@ img {
 
 .home-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
-  gap: 34px;
+  grid-template-columns: minmax(0, 0.98fr) minmax(500px, 0.82fr);
+  gap: 42px;
   align-items: center;
-  padding: 28px;
+  min-height: 620px;
+  padding: 30px 0 42px;
   margin-bottom: 24px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .hero-copy {
   display: grid;
-  gap: 14px;
-  max-width: 760px;
+  gap: 16px;
+  max-width: 720px;
 }
 
 .hero-copy h1 {
-  max-width: 760px;
+  max-width: 720px;
   margin: 0;
-  font-size: 3rem;
+  font-size: clamp(3rem, 4.45vw, 4.7rem);
   line-height: 1;
   letter-spacing: 0;
 }
 
 .hero-copy p:not(.eyebrow) {
-  max-width: 680px;
+  max-width: 690px;
   margin: 0;
   color: var(--mocha);
   font-size: 1.05rem;
@@ -173,7 +184,7 @@ img {
 .hero-proof {
   display: grid;
   gap: 12px;
-  max-width: 720px;
+  max-width: 660px;
   padding-left: 16px;
   border-left: 3px solid var(--gold);
 }
@@ -198,11 +209,12 @@ img {
   padding: 6px 10px;
   border: 1px solid rgba(104, 122, 103, 0.28);
   border-radius: 999px;
-  background: rgba(227, 235, 224, 0.72);
+  background: rgba(255, 250, 245, 0.82);
   color: var(--coffee);
   font-size: 0.82rem;
   font-weight: 800;
   line-height: 1.1;
+  box-shadow: 0 4px 12px rgba(74, 36, 17, 0.06);
 }
 
 .hero-copy .hero-question {
@@ -218,30 +230,212 @@ img {
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 14px;
   align-items: center;
   margin-top: 4px;
 }
 
-.hero-logo-card {
-  display: grid;
-  place-items: center;
-  width: min(320px, 100%);
-  aspect-ratio: 1;
-  align-self: start;
-  margin-top: 34px;
-  min-height: 0;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: white;
+.hero-secondary {
+  width: min(260px, 100%);
+  border: 1px solid rgba(74, 36, 17, 0.26);
+  background: rgba(255, 250, 245, 0.72);
+  color: var(--coffee);
 }
 
-.hero-logo-card img {
-  display: block;
+.match-preview {
+  position: relative;
+  min-height: 560px;
+  isolation: isolate;
+}
+
+.match-preview::before {
+  content: "";
+  position: absolute;
+  inset: 54px 56px 46px 24px;
+  z-index: -2;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 45% 36%, rgba(255, 250, 245, 0.95), rgba(247, 234, 211, 0.72) 62%, rgba(234, 222, 210, 0.38));
+}
+
+.match-preview::after {
+  content: "";
+  position: absolute;
+  top: 118px;
+  right: 38px;
+  bottom: 86px;
+  left: 62px;
+  z-index: -1;
+  border: 2px solid rgba(230, 163, 58, 0.62);
+  border-left-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 50%;
+  transform: rotate(18deg);
+}
+
+.dog-orbit {
+  position: absolute;
+  right: 104px;
+  bottom: 36px;
+  width: min(400px, 68%);
+  aspect-ratio: 0.82;
+  overflow: hidden;
+  border-radius: 46% 46% 18% 18%;
+  box-shadow: 0 28px 58px rgba(74, 36, 17, 0.14);
+}
+
+.dog-orbit img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: 48% center;
+  transform: scale(1.02);
+}
+
+.preview-card {
+  position: absolute;
+  display: grid;
+  border: 1px solid rgba(218, 200, 184, 0.82);
+  border-radius: 22px;
+  background: rgba(255, 250, 245, 0.9);
+  box-shadow: 0 24px 56px rgba(74, 36, 17, 0.14);
+  backdrop-filter: blur(12px);
+}
+
+.compatibility-card {
+  top: 86px;
+  right: 8px;
+  width: 216px;
+  gap: 6px;
+  padding: 22px;
+}
+
+.compatibility-card span,
+.dog-card span,
+.lifestyle-card li {
+  color: var(--mocha);
+  font-size: 0.82rem;
+}
+
+.compatibility-card strong {
+  color: var(--sage);
+  font-size: 3.2rem;
+  line-height: 0.92;
+}
+
+.compatibility-card strong i {
+  font-size: 1.3rem;
+  font-style: normal;
+}
+
+.compatibility-card b {
+  color: var(--coffee);
+  font-size: 1.15rem;
+}
+
+.compatibility-card p {
+  margin: 2px 0 8px;
+  color: var(--mocha);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.mini-meter,
+.dog-card dd {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(218, 200, 184, 0.64);
+}
+
+.mini-meter span,
+.dog-card dd span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--sage);
+}
+
+.dog-card {
+  left: 28px;
+  bottom: 96px;
+  width: 292px;
+  grid-template-columns: 58px 1fr;
+  gap: 10px 14px;
+  padding: 18px;
+}
+
+.dog-card > img {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dog-card h3,
+.lifestyle-card h3 {
+  margin: 0;
+  color: var(--coffee);
+  font-size: 1.12rem;
+  line-height: 1.15;
+}
+
+.dog-card h3 small {
+  margin-left: 6px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: var(--mocha);
+  font-size: 0.68rem;
+}
+
+.dog-card p {
+  margin: 4px 0;
+  color: var(--coffee);
+  font-size: 0.84rem;
+}
+
+.dog-card dl {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  margin: 10px 0 0;
+}
+
+.dog-card dl div {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.dog-card dt {
+  color: var(--coffee);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.lifestyle-card {
+  right: 24px;
+  bottom: 66px;
+  width: 232px;
+  gap: 12px;
+  padding: 20px;
+}
+
+.lifestyle-card ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lifestyle-card li::before {
+  content: "✓";
+  margin-right: 8px;
+  color: var(--success);
+  font-weight: 950;
 }
 
 .collab-section {
@@ -981,9 +1175,10 @@ input[type="range"] {
     grid-template-columns: 1fr;
   }
 
-  .hero-logo-card {
+  .match-preview {
     justify-self: center;
-    margin-top: 8px;
+    min-height: 540px;
+    width: min(680px, 100%);
   }
 }
 
@@ -1004,8 +1199,11 @@ input[type="range"] {
   }
 
   .nav-pills button {
-    flex: 1;
-    padding: 0 10px;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0 8px;
+    font-size: 0.82rem;
+    white-space: nowrap;
   }
 
   .screen {
@@ -1023,16 +1221,45 @@ input[type="range"] {
 
   .home-hero,
   .access-card {
-    padding: 20px;
+    padding: 20px 0;
   }
 
-  .hero-logo-card {
-    width: min(260px, 100%);
-  }
-
-  .hero-logo-card img {
+  .match-preview {
+    min-height: 640px;
     width: 100%;
-    height: 100%;
+  }
+
+  .match-preview::before {
+    inset: 28px 10px 120px;
+  }
+
+  .match-preview::after {
+    inset: 70px 16px 140px;
+  }
+
+  .dog-orbit {
+    right: 50%;
+    bottom: 190px;
+    width: min(330px, 82vw);
+    transform: translateX(50%);
+  }
+
+  .compatibility-card {
+    top: 18px;
+    right: 0;
+    width: min(210px, 58vw);
+  }
+
+  .dog-card {
+    left: 0;
+    bottom: 72px;
+    width: min(292px, 80vw);
+  }
+
+  .lifestyle-card {
+    right: 0;
+    bottom: 0;
+    width: min(230px, 72vw);
   }
 
   .form-split,
