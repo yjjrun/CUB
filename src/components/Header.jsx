@@ -13,12 +13,14 @@ export default function Header({ route, navigate }) {
         aria-label="CUB home"
       >
         <img src={APP_LOGO} alt="" />
-        <span>CUB: Canine Understanding Buddy</span>
+        <span className="brand-word">CUB</span>
+        <span className="brand-subtitle">Canine<br />Understanding<br />Buddy</span>
       </a>
       <nav className="nav-pills" aria-label="Site areas">
-        <button className={route === "home" ? "active" : ""} onClick={() => navigate("home")}>Home</button>
-        <button className={route === "match" ? "active" : ""} onClick={() => navigate("match")}>Match now!</button>
-        <button className={route === "partner" ? "active" : ""} onClick={() => navigate("partner")}>Shelter intake</button>
+        <button className={route === "home" ? "active" : ""} onClick={() => navigate("home")}>How it works</button>
+        <button className={route === "match" ? "active" : ""} onClick={() => navigate("match")}>For adopters</button>
+        <button className={route === "partner" ? "active" : ""} onClick={() => navigate("partner")}>For shelters</button>
+        <button onClick={() => navigate("home")}>About us</button>
       </nav>
     </header>
   );

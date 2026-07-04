@@ -64,66 +64,85 @@ img {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
-  padding: 18px 56px;
-  background: rgba(251, 247, 241, 0.72);
-  border-bottom: 1px solid rgba(218, 200, 184, 0.54);
-  backdrop-filter: blur(16px);
+  gap: 40px;
+  min-height: 92px;
+  padding: 18px 48px;
+  background: rgba(255, 250, 245, 0.9);
+  border-bottom: 0;
+  backdrop-filter: blur(18px);
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   color: var(--coffee);
   text-decoration: none;
   font-weight: 900;
-  font-size: 1.2rem;
-  line-height: 1.12;
+  line-height: 1;
   min-width: 0;
 }
 
-.brand span {
-  overflow-wrap: anywhere;
-}
-
 .brand img {
-  width: 42px;
-  height: 42px;
-  border: 1px solid rgba(230, 163, 58, 0.4);
+  width: 58px;
+  height: 58px;
+  border: 0;
   border-radius: 50%;
   object-fit: contain;
-  background: white;
+  background: transparent;
+}
+
+.brand-word {
+  color: var(--coffee);
+  font-size: clamp(2.1rem, 3.2vw, 3.3rem);
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.brand-subtitle {
+  color: var(--coffee);
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  line-height: 1.18;
+  text-transform: uppercase;
 }
 
 .nav-pills {
   display: flex;
-  gap: 8px;
-  padding: 5px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--paper);
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(28px, 5vw, 74px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .nav-pills button,
 .secondary-action {
   border: 0;
-  border-radius: 999px;
+  border-radius: 0;
   background: transparent;
   color: var(--coffee);
-  font-weight: 800;
-  min-height: 40px;
-  padding: 0 16px;
+  font-weight: 650;
+  min-height: 44px;
+  padding: 0;
 }
 
-.nav-pills button.active,
 .secondary-action {
   background: var(--coffee);
   color: var(--cream);
 }
 
 .nav-pills button.active {
-  box-shadow: inset 0 -3px 0 rgba(230, 163, 58, 0.52);
+  color: var(--coffee);
+  box-shadow: none;
+}
+
+.nav-pills button:hover,
+.nav-pills button:focus-visible {
+  color: var(--cocoa);
 }
 
 .screen {
@@ -1306,18 +1325,40 @@ input[type="range"] {
   }
 
   .topbar {
+    gap: 14px;
+    min-height: 0;
     padding: 14px;
   }
 
+  .brand {
+    gap: 10px;
+  }
+
+  .brand img {
+    width: 44px;
+    height: 44px;
+  }
+
+  .brand-word {
+    font-size: 1.8rem;
+  }
+
+  .brand-subtitle {
+    font-size: 0.64rem;
+  }
+
   .nav-pills {
+    justify-content: space-between;
+    gap: 8px;
     width: 100%;
   }
 
   .nav-pills button {
     flex: 1 1 0;
     min-width: 0;
-    padding: 0 8px;
-    font-size: 0.82rem;
+    min-height: 36px;
+    padding: 0 2px;
+    font-size: 0.74rem;
     white-space: nowrap;
   }
 
