@@ -1019,3 +1019,7 @@ input[type="range"] {
   .wizard-intro { position: static; }
   .wizard-intro h1 { font-size: 1.9rem; }
 }
+
+.database-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.database-list li { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
+.database-list li span { color: var(--mocha); font-size: 0.85rem; }
