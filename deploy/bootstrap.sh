@@ -11,7 +11,7 @@ BRANCH="${CUB_BRANCH:-main}"
 APP_DIR="/opt/cub"
 DATA_DIR="/var/lib/cub"   # outside the repo so redeploys never clobber the live DB
 
-dnf -y install git python3 nginx
+dnf -y install git python3 nginx nodejs npm
 
 # Dedicated, unprivileged service account.
 id cub &>/dev/null || useradd --system --home-dir "$APP_DIR" --shell /sbin/nologin cub
@@ -33,9 +33,15 @@ fi
 install -d -o cub -g cub "$DATA_DIR"
 chown -R cub:cub "$APP_DIR"
 
-# systemd unit + nginx reverse proxy.
+# Build the React frontend into dist/ (served statically by nginx).
+sudo -u cub npm --prefix "$APP_DIR" ci
+sudo -u cub npm --prefix "$APP_DIR" run build
+
+# systemd unit (Python JSON API) + nginx (serves dist/, proxies /api).
 install -m 0644 "$APP_DIR/deploy/cub.service" /etc/systemd/system/cub.service
-install -m 0644 "$APP_DIR/deploy/nginx-cub.conf" /etc/nginx/conf.d/cub.conf
+# Install the nginx site only if absent, so certbot's TLS edits survive redeploys.
+# (On the already-live box, replace the file once and re-run certbot --nginx.)
+[ -f /etc/nginx/conf.d/cub.conf ] || install -m 0644 "$APP_DIR/deploy/nginx-cub.conf" /etc/nginx/conf.d/cub.conf
 
 # Let nginx reach the local app port when SELinux is enforcing.
 command -v setsebool >/dev/null && setsebool -P httpd_can_network_connect 1 || true
