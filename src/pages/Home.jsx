@@ -1,0 +1,51 @@
+import { APP_LOGO } from "../lib/matching.js";
+
+const PET_LINKS = [
+  { label: "Pet news", description: "Heart-warming animal stories and the latest dog news.", url: "https://www.thedodo.com", host: "thedodo.com", image: "/assets/link-news.jpg" },
+  { label: "Treats & snacks", description: "Shop healthy treats and food for every life stage.", url: "https://www.chewy.com", host: "chewy.com", image: "/assets/link-snacks.jpg" },
+  { label: "Toys & play", description: "Enrichment toys and monthly play boxes for happy pups.", url: "https://www.barkbox.com", host: "barkbox.com", image: "/assets/link-toys.jpg" },
+  { label: "Adoption & shelters", description: "Find adoptable dogs and trusted rescues near you.", url: "https://www.petfinder.com", host: "petfinder.com", image: "/assets/link-shelters.jpg" },
+];
+
+export default function Home({ navigate }) {
+  return (
+    <main className="screen home-screen">
+      <section className="home-hero panel">
+        <div className="hero-copy">
+          <p className="eyebrow">Canine Understanding Buddy</p>
+          <h1>Understand your lifestyle. Meet dogs who fit it.</h1>
+          <p>
+            CUB helps adopters compare personality, daily routine, home setup, and future pet
+            preferences against dogs added by trusted shelters and pet shops.
+          </p>
+          <div className="hero-actions">
+            <button className="primary-action hero-action" onClick={() => navigate("match")}>Match now!</button>
+            <button className="secondary-action hero-action" onClick={() => navigate("partner")}>Shelter questions</button>
+          </div>
+        </div>
+        <div className="hero-logo-card">
+          <img src={APP_LOGO} alt="CUB dog logo" />
+        </div>
+      </section>
+
+      <section className="collab-section">
+        <div className="section-title">
+          <p className="eyebrow">Pet resources</p>
+          <h2>Handy links for new dog parents.</h2>
+        </div>
+        <div className="collab-grid">
+          {PET_LINKS.map((link) => (
+            <a key={link.host} className="collab-card" href={link.url} target="_blank" rel="noreferrer noopener">
+              <img className="collab-thumb" src={link.image} alt={link.label} loading="lazy" />
+              <div>
+                <h3>{link.label}</h3>
+                <p>{link.description}</p>
+                <span>{link.host} &rarr;</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
