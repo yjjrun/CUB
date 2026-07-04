@@ -404,6 +404,27 @@ function deriveCbarqFactors() {
   );
 }
 
+function renderFactorChips() {
+  const factors = deriveCbarqFactors();
+  return FACTORS.map(([id, label]) => `
+    <div class="factor-chip">
+      <span>${escapeHtml(label)}</span>
+      <b>${factors[id]}</b>
+    </div>
+  `).join("");
+}
+
+function refreshCbarqSummary() {
+  const progress = app.querySelector("[data-cbarq-progress]");
+  const factorGrid = app.querySelector("[data-factor-grid]");
+  if (progress) {
+    progress.textContent = `${cbarqAnsweredCount()} of 101 questions answered. N/A is accepted when the situation has not been observed.`;
+  }
+  if (factorGrid) {
+    factorGrid.innerHTML = renderFactorChips();
+  }
+}
+
 function computeMbti(profile) {
   const scores = { EI: 0, SN: 0, TF: 0, JP: 0 };
   for (const [id, axis, positiveLetter] of MBTI_QUESTIONS) {
@@ -875,20 +896,15 @@ function renderPartner() {
           <div class="panel-head compact">
             <p class="eyebrow">C-BARQ questionnaire</p>
             <h2>Behavior questions</h2>
-            <p class="helper-copy">${cbarqAnsweredCount()} of 101 questions answered. N/A is accepted when the situation has not been observed.</p>
+            <p class="helper-copy" data-cbarq-progress>${cbarqAnsweredCount()} of 101 questions answered. N/A is accepted when the situation has not been observed.</p>
           </div>
           <div class="cbarq-sections">
             ${CBARQ_SECTIONS.map(renderCbarqSection).join("")}
           </div>
           <div class="factor-summary">
             <h3>Calculated behavior factors</h3>
-            <div class="factor-grid compact">
-              ${FACTORS.map(([id, label]) => `
-                <div class="factor-chip">
-                  <span>${escapeHtml(label)}</span>
-                  <b>${deriveCbarqFactors()[id]}</b>
-                </div>
-              `).join("")}
+            <div class="factor-grid compact" data-factor-grid>
+              ${renderFactorChips()}
             </div>
           </div>
           <label class="field">
@@ -1063,10 +1079,12 @@ function attachEvents() {
   });
 
   app.querySelectorAll("input, select, textarea").forEach((input) => {
-    input.addEventListener("input", () => {
+    const eventName = input.tagName === "SELECT" || input.type === "checkbox" ? "change" : "input";
+    input.addEventListener(eventName, () => {
       const value = input.type === "checkbox" ? input.checked : input.value;
       writePath(input.name, value);
       if (input.name === "partner.breed") applyBreedRule();
+      if (input.name.startsWith("cbarq.")) refreshCbarqSummary();
       if (input.type === "range") {
         const label = input.closest(".range-row");
         const output = label && label.querySelector("small");
