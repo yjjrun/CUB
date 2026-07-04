@@ -141,11 +141,17 @@ img {
 
 .home-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 34px;
   align-items: center;
   padding: 28px;
   margin-bottom: 24px;
+}
+
+.hero-copy {
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
 }
 
 .hero-copy h1 {
@@ -158,13 +164,55 @@ img {
 
 .hero-copy p:not(.eyebrow) {
   max-width: 680px;
+  margin: 0;
   color: var(--mocha);
   font-size: 1.05rem;
   line-height: 1.55;
 }
 
+.hero-proof {
+  display: grid;
+  gap: 12px;
+  max-width: 720px;
+  padding-left: 16px;
+  border-left: 3px solid var(--gold);
+}
+
+.hero-proof p {
+  margin: 0;
+  color: var(--mocha);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.trait-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trait-list li {
+  padding: 6px 10px;
+  border: 1px solid rgba(104, 122, 103, 0.28);
+  border-radius: 999px;
+  background: rgba(227, 235, 224, 0.72);
+  color: var(--coffee);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.hero-copy .hero-question {
+  max-width: 660px;
+  color: var(--coffee);
+  font-weight: 800;
+}
+
 .hero-action {
-  width: min(280px, 100%);
+  width: min(240px, 100%);
 }
 
 .hero-actions {
@@ -172,6 +220,7 @@ img {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+  margin-top: 4px;
 }
 
 .hero-logo-card {
@@ -179,6 +228,8 @@ img {
   place-items: center;
   width: min(320px, 100%);
   aspect-ratio: 1;
+  align-self: start;
+  margin-top: 34px;
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -530,6 +581,11 @@ input[type="range"] {
   font-weight: 950;
   box-shadow: 0 12px 28px rgba(74, 36, 17, 0.22);
   border-bottom: 3px solid rgba(230, 163, 58, 0.6);
+}
+
+.hero-actions .hero-action {
+  width: min(240px, 100%);
+  margin-top: 0;
 }
 
 .result-empty {
@@ -923,6 +979,11 @@ input[type="range"] {
   .home-hero,
   .access-card {
     grid-template-columns: 1fr;
+  }
+
+  .hero-logo-card {
+    justify-self: center;
+    margin-top: 8px;
   }
 }
 

@@ -17,16 +17,30 @@ export default function Home({ navigate }) {
           <p>
             CUB helps adopters find dogs that fit their lifestyle, experience, and home environment.
           </p>
-          <p>
-            Our matching algorithm profiles each dog across key behavioural traits such as energy
-            level, sociability, trainability, fearfulness, attachment, separation-related behaviour,
-            and sensitivity. This approach is informed by established canine behaviour research and
-            draws on large-scale behavioural datasets, alongside collaboration with academic
-            researchers from institutions including the University of Pennsylvania and the National
-            University of Singapore. Adopters are then matched based on their routine, activity level,
-            household, experience with dogs, and ability to meet each dog's needs.
-          </p>
-          <p>
+          <div className="hero-proof">
+            <p>
+              Our matching algorithm profiles each dog across key behavioural traits:
+            </p>
+            <ul className="trait-list" aria-label="Dog behaviour traits">
+              <li>Energy</li>
+              <li>Sociability</li>
+              <li>Trainability</li>
+              <li>Fearfulness</li>
+              <li>Attachment</li>
+              <li>Separation behaviour</li>
+              <li>Sensitivity</li>
+            </ul>
+            <p>
+              This approach is informed by established canine behaviour research and large-scale
+              behavioural datasets, alongside collaboration with academic researchers from institutions
+              including the University of Pennsylvania and the National University of Singapore.
+            </p>
+            <p>
+              Adopters are matched based on their routine, activity level, household, dog experience,
+              and ability to meet each dog's needs.
+            </p>
+          </div>
+          <p className="hero-question">
             Instead of matching based only on breed or appearance, CUB asks: which dog is most likely
             to thrive in your home?
           </p>
