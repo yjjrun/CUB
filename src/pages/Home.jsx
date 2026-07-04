@@ -20,7 +20,6 @@ export default function Home({ navigate }) {
           </p>
           <div className="hero-actions">
             <button className="primary-action hero-action" onClick={() => navigate("match")}>Match now!</button>
-            <button className="secondary-action hero-action" onClick={() => navigate("partner")}>Shelter questions</button>
           </div>
         </div>
         <div className="hero-logo-card">
