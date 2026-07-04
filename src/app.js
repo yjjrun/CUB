@@ -297,6 +297,7 @@ const state = {
   mode: modeFromPath(),
   dogs: [],
   submitted: false,
+  selectedMatch: 0,
   partnerUnlocked: false,
   partnerCode: "",
   partnerLockError: "",
@@ -304,6 +305,7 @@ const state = {
   error: "",
   profile: {
     name: "",
+    step: 0,
     answers: { ...DEFAULT_ANSWERS },
     lifestyle: {
       homeType: "HDB flat",
@@ -344,6 +346,172 @@ const app = document.getElementById("app");
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
+}
+
+// ---- Match wizard ----------------------------------------------------------
+// The wizard writes into the same profile fields the matching logic already
+// reads (answers/lifestyle/preferences), so scoring is unchanged.
+function setAxis(axis, lean) {
+  for (const [id, ax, positiveLetter] of MBTI_QUESTIONS) {
+    if (ax !== axis) continue;
+    if (lean === "balanced") {
+      state.profile.answers[id] = 3;
+      continue;
+    }
+    const isFirstLetter = positiveLetter === ax[0];
+    const wantFirst = lean === "first";
+    state.profile.answers[id] = isFirstLetter === wantFirst ? 5 : 1;
+  }
+}
+
+function getAxis(axis) {
+  let sum = 0;
+  for (const [id, ax, positiveLetter] of MBTI_QUESTIONS) {
+    if (ax !== axis) continue;
+    const sign = positiveLetter === ax[0] ? 1 : -1;
+    sum += (Number(state.profile.answers[id]) - 3) * sign;
+  }
+  return sum > 0 ? "first" : sum < 0 ? "second" : "balanced";
+}
+
+const EXERCISE_BANDS = { low: 30, moderate: 70, high: 110 };
+function getExerciseBand() {
+  const m = Number(state.profile.lifestyle.exerciseMinutes);
+  return m < 50 ? "low" : m < 90 ? "moderate" : "high";
+}
+function getAwayBand() {
+  const h = Number(state.profile.lifestyle.hoursAway);
+  return h < 4 ? "rarely" : h <= 8 ? "part" : "most";
+}
+
+const MATCH_STEPS = [
+  {
+    crumb: "Personality",
+    title: "How do you recharge?",
+    desc: "Some dogs thrive on outings and company; others love a calm home. Let's find your rhythm.",
+    get: () => getAxis("EI"),
+    set: (v) => setAxis("EI", v),
+    options: [
+      { value: "first", label: "Out and about", sub: "Social plans and activity energize me." },
+      { value: "balanced", label: "A balanced mix", sub: "Some outings, some downtime." },
+      { value: "second", label: "Calm at home", sub: "Quiet time is how I recharge." },
+    ],
+  },
+  {
+    crumb: "Personality",
+    title: "How do you take things in?",
+    desc: "This shapes whether you'll enjoy a predictable dog or one that keeps you guessing.",
+    get: () => getAxis("SN"),
+    set: (v) => setAxis("SN", v),
+    options: [
+      { value: "first", label: "Practical details", sub: "I notice concrete, here-and-now facts." },
+      { value: "balanced", label: "A balanced mix", sub: "A bit of both." },
+      { value: "second", label: "Patterns and ideas", sub: "I love possibilities and the big picture." },
+    ],
+  },
+  {
+    crumb: "Personality",
+    title: "How do you make decisions?",
+    desc: "This affects how you'll handle training and setting boundaries.",
+    get: () => getAxis("TF"),
+    set: (v) => setAxis("TF", v),
+    options: [
+      { value: "first", label: "Logic and rules", sub: "Consistent rules keep me on track." },
+      { value: "balanced", label: "A balanced mix", sub: "Head and heart together." },
+      { value: "second", label: "Empathy and feeling", sub: "I lead with how everyone feels." },
+    ],
+  },
+  {
+    crumb: "Personality",
+    title: "How do you like your days?",
+    desc: "Routine-loving dogs and spontaneous dogs suit different people.",
+    get: () => getAxis("JP"),
+    set: (v) => setAxis("JP", v),
+    options: [
+      { value: "first", label: "Planned and structured", sub: "Schedules and routines feel good." },
+      { value: "balanced", label: "A balanced mix", sub: "Flexible, with some structure." },
+      { value: "second", label: "Flexible and spontaneous", sub: "I go with the flow." },
+    ],
+  },
+  {
+    crumb: "Lifestyle",
+    title: "Where will your dog live?",
+    desc: "Housing shapes which dogs can thrive with you — HDB rules and space matter.",
+    get: () => state.profile.lifestyle.homeType,
+    set: (v) => { state.profile.lifestyle.homeType = v; },
+    options: [
+      { value: "HDB flat", label: "HDB flat", sub: "HDB-approved breeds only." },
+      { value: "condominium", label: "Condominium", sub: "Check your condo's pet rules." },
+      { value: "landed house", label: "Landed house", sub: "The most room to roam." },
+    ],
+  },
+  {
+    crumb: "Lifestyle",
+    title: "How active are you?",
+    desc: "We match a dog's exercise needs to your daily energy.",
+    get: getExerciseBand,
+    set: (v) => { state.profile.lifestyle.exerciseMinutes = EXERCISE_BANDS[v]; },
+    options: [
+      { value: "low", label: "Easygoing", sub: "Short walks, about 30 min a day." },
+      { value: "moderate", label: "Moderately active", sub: "Around an hour a day." },
+      { value: "high", label: "Very active", sub: "90+ minutes, happy to run." },
+    ],
+  },
+  {
+    crumb: "Lifestyle",
+    title: "How long are you away on a normal day?",
+    desc: "Some dogs need company; long alone-time can be hard on them.",
+    get: getAwayBand,
+    set: (v) => { state.profile.lifestyle.hoursAway = { rarely: 2, part: 6, most: 10 }[v]; },
+    options: [
+      { value: "rarely", label: "Rarely away", sub: "Someone's usually home." },
+      { value: "part", label: "Part of the day", sub: "Out about 4 to 8 hours." },
+      { value: "most", label: "Most of the day", sub: "Out 8+ hours." },
+    ],
+  },
+  {
+    crumb: "Experience",
+    title: "How much dog experience do you have?",
+    desc: "This helps us keep higher-needs dogs with handlers ready for them.",
+    get: () => state.profile.lifestyle.experience,
+    set: (v) => { state.profile.lifestyle.experience = v; },
+    options: [
+      { value: "first-time", label: "First-time owner", sub: "This would be my first dog." },
+      { value: "some", label: "Some experience", sub: "I've had a dog before." },
+      { value: "experienced", label: "Very experienced", sub: "I'm confident with training." },
+    ],
+  },
+  {
+    crumb: "Preferences",
+    title: "Any size preference?",
+    desc: "We factor this in, but welfare fit always comes first.",
+    get: () => state.profile.preferences.size,
+    set: (v) => { state.profile.preferences.size = v; },
+    options: [
+      { value: "Any", label: "No preference", sub: "Show me all sizes." },
+      { value: "Small", label: "Small", sub: "Lap-sized companions." },
+      { value: "Medium", label: "Medium", sub: "A balance of both." },
+      { value: "Large", label: "Large", sub: "Big, sturdy dogs." },
+    ],
+  },
+];
+
+const CLUSTER_TRAITS = {
+  "Gentle Wallflowers": ["Gentle", "Sensitive", "Calm"],
+  "Driven Guardians": ["Confident", "Loyal", "High-drive"],
+  "Golden Hearts": ["Friendly", "Trainable", "Easygoing"],
+  "Joyful Sparks": ["Playful", "Social", "Energetic"],
+  "Cautious Companions": ["Reserved", "Loyal", "Routine-loving"],
+  "Gentle Giants": ["Gentle", "Affectionate", "Steady"],
+  "Fiery Dynamos": ["Intense", "Spirited", "Demanding"],
+};
+function clusterTraits(name) {
+  return CLUSTER_TRAITS[name] || ["Loving", "Loyal", "Unique"];
+}
+function experienceLabel(cluster) {
+  if (["Fiery Dynamos", "Driven Guardians"].includes(cluster)) return "Experienced handler";
+  if (cluster === "Cautious Companions") return "Some experience helps";
+  return "First-time friendly";
 }
 
 function escapeHtml(value = "") {
@@ -598,7 +766,30 @@ async function submitPartner() {
 
 function submitConsumer() {
   state.submitted = true;
+  state.selectedMatch = 0;
   render();
+}
+
+function handleAction(action, data) {
+  const total = MATCH_STEPS.length;
+  if (action === "select-option") {
+    MATCH_STEPS[clamp(state.profile.step, 0, total - 1)].set(data.value);
+    render();
+  } else if (action === "next") {
+    if (state.profile.step >= total - 1) submitConsumer();
+    else { state.profile.step += 1; render(); }
+  } else if (action === "back") {
+    if (state.profile.step <= 0) setMode("home");
+    else { state.profile.step -= 1; render(); }
+  } else if (action === "restart") {
+    state.submitted = false;
+    state.profile.step = 0;
+    state.selectedMatch = 0;
+    render();
+  } else if (action === "select-match") {
+    state.selectedMatch = Number(data.index);
+    render();
+  }
 }
 
 function renderHeader() {
@@ -690,161 +881,149 @@ function renderCollaboratorSlot({ label, description, url, host, image }) {
 }
 
 function renderPublic() {
-  const mbti = computeMbti(state.profile);
-  const matches = state.submitted ? getMatches() : [];
+  return state.submitted ? renderMatchResults() : renderMatchWizard();
+}
+
+function renderMatchWizard() {
+  const total = MATCH_STEPS.length;
+  const index = clamp(state.profile.step, 0, total - 1);
+  const step = MATCH_STEPS[index];
+  const selected = step.get();
+  const pct = Math.round(((index + 1) / total) * 100);
   return `
     ${renderHeader()}
-    <main class="screen public-screen">
-      <section class="intro-strip">
-        <div>
-          <p class="eyebrow">Match quiz</p>
-          <h1>Find a dog whose needs fit your life.</h1>
-        </div>
-        <div class="stat-block">
-          <strong>${state.dogs.length}</strong>
-          <span>dogs in database</span>
-        </div>
-      </section>
-
-      <div class="app-grid">
-        <form class="panel questionnaire" data-form="consumer">
-          <div class="panel-head">
-            <p class="eyebrow">Step 1</p>
-            <h2>Personality</h2>
-          </div>
-          <label class="field">
-            <span>Your name</span>
-            <input name="consumer.name" value="${escapeHtml(state.profile.name)}" placeholder="Optional" />
-          </label>
-          <div class="question-list">
-            ${MBTI_QUESTIONS.map(([id, axis, , label], index) => `
-              <label class="range-row">
-                <span><b>${index + 1}.</b> ${escapeHtml(label)}</span>
-                <input type="range" min="1" max="5" name="answers.${id}" value="${state.profile.answers[id]}" />
-                <small>${axis} scale</small>
-              </label>
-            `).join("")}
-          </div>
-
-          <div class="form-split">
-            <div>
-              <div class="panel-head compact">
-                <p class="eyebrow">Step 2</p>
-                <h2>Lifestyle</h2>
-              </div>
-              ${selectField("Home type", "lifestyle.homeType", state.profile.lifestyle.homeType, ["HDB flat", "condominium", "landed house"])}
-              ${numberField("Daily exercise minutes", "lifestyle.exerciseMinutes", state.profile.lifestyle.exerciseMinutes, 0, 180)}
-              ${numberField("Hours away on a normal day", "lifestyle.hoursAway", state.profile.lifestyle.hoursAway, 0, 14)}
-              ${selectField("Dog experience", "lifestyle.experience", state.profile.lifestyle.experience, ["first-time", "some", "experienced"])}
-              ${selectField("Training commitment", "lifestyle.trainingCommitment", state.profile.lifestyle.trainingCommitment, ["weekly", "several times a week", "daily"])}
+    <main class="screen wizard-screen">
+      <div class="wizard">
+        <nav class="wizard-crumb">
+          <a data-nav="home">Find your match</a><span>/ ${escapeHtml(step.crumb)}</span>
+        </nav>
+        <div class="wizard-grid">
+          <div class="wizard-intro">
+            <div class="wizard-progress">
+              <div class="wizard-progress-head"><span>Progress</span><span>${index + 1}/${total}</span></div>
+              <div class="wizard-bar"><i style="width:${pct}%"></i></div>
             </div>
-            <div>
-              <div class="panel-head compact">
-                <p class="eyebrow">Step 3</p>
-                <h2>Preferences</h2>
-              </div>
-              ${selectField("Preferred size", "preferences.size", state.profile.preferences.size, ["Any", "Small", "Medium", "Large"])}
-              <label class="field">
-                <span>Preferred color</span>
-                <input name="preferences.color" value="${escapeHtml(state.profile.preferences.color)}" placeholder="e.g. brown" />
-              </label>
-              <label class="field">
-                <span>Preferred breed</span>
-                <input name="preferences.breed" value="${escapeHtml(state.profile.preferences.breed)}" placeholder="Optional" />
-              </label>
-              ${selectField("Children at home", "lifestyle.children", state.profile.lifestyle.children, ["no", "yes"])}
-              ${selectField("Other pets", "lifestyle.otherPets", state.profile.lifestyle.otherPets, ["no", "yes"])}
+            <h1>${escapeHtml(step.title)}</h1>
+            <p>${escapeHtml(step.desc)}</p>
+          </div>
+          <div class="wizard-options">
+            <p class="wizard-hint">Choose the one that fits best.</p>
+            <div class="option-list">
+              ${step.options.map((opt) => `
+                <button type="button" class="option-card ${opt.value === selected ? "is-selected" : ""}"
+                        data-action="select-option" data-value="${escapeHtml(opt.value)}">
+                  <span class="option-check" aria-hidden="true"></span>
+                  <span class="option-text"><b>${escapeHtml(opt.label)}</b><small>${escapeHtml(opt.sub)}</small></span>
+                </button>
+              `).join("")}
+            </div>
+            <div class="wizard-actions">
+              <button type="button" class="ghost-action" data-action="back">${index === 0 ? "Cancel" : "Back"}</button>
+              <button type="button" class="primary-action" data-action="next">${index === total - 1 ? "See my matches" : "Continue"}</button>
             </div>
           </div>
-          <button class="primary-action" type="submit">Find My Match</button>
-        </form>
-
-        <aside class="panel match-panel">
-          <div class="panel-head">
-            <p class="eyebrow">Match results</p>
-            <h2>${state.submitted ? `Likely ${mbti.type}` : "Ready when you are"}</h2>
-          </div>
-          ${state.submitted ? renderMatches(matches, mbti.type) : renderWaitingState(mbti.type)}
-        </aside>
+        </div>
       </div>
     </main>
   `;
 }
 
-function renderWaitingState(type) {
-  const hasSignal = Object.values(state.profile.answers).some((value) => Number(value) !== 3);
-  return `
-    <div class="result-empty">
-      <img src="${APP_LOGO}" alt="" />
-      <h3>${hasSignal ? `Your current questionnaire points to ${type}.` : "Your MBTI-style profile will appear here."}</h3>
-      <p>Submit the form to compare your lifestyle and preferences against the dogs saved by shelters.</p>
-    </div>
-    <div class="logic-band">
-      <span>Scoring</span>
-      <b>30% lifestyle</b>
-      <b>25% housing</b>
-      <b>15% experience</b>
-      <b>30% personality</b>
-    </div>
-  `;
-}
-
-function renderMatches(matches, type) {
-  if (!state.dogs.length) {
+function renderMatchResults() {
+  const matches = getMatches();
+  if (!matches.length) {
     return `
-      <div class="result-empty">
-        <img src="${APP_LOGO}" alt="" />
-        <h3>No dogs are stored yet.</h3>
-        <p>The database is intentionally empty. Once approved partners add dogs, matches will appear here.</p>
-      </div>
+      ${renderHeader()}
+      <main class="screen results-screen">
+        <div class="results">
+          <nav class="wizard-crumb"><a data-nav="home">Find your match</a><span>/ Matches</span></nav>
+          <div class="result-empty big">
+            <img src="${APP_LOGO}" alt="" />
+            <h3>No dogs are available yet.</h3>
+            <p>Once approved shelters add dogs, your matches will appear here.</p>
+            <button type="button" class="primary-action" data-action="restart">Retake the quiz</button>
+          </div>
+        </div>
+      </main>
     `;
   }
+  const top = matches.slice(0, 5);
+  const idx = clamp(state.selectedMatch, 0, top.length - 1);
+  const match = top[idx];
+  const { dog } = match;
+  const cluster = CLUSTERS[dog.cluster] || CLUSTERS["Golden Hearts"];
   return `
-    <div class="type-card">
-      <span>Your MBTI-style profile</span>
-      <strong>${type}</strong>
-      <p>Personality now carries 30% of the score, balanced with lifestyle, housing, and experience.</p>
-    </div>
-    <div class="match-list">
-      ${matches.map(renderMatchCard).join("")}
-    </div>
+    ${renderHeader()}
+    <main class="screen results-screen">
+      <div class="results">
+        <div class="results-head">
+          <div>
+            <nav class="wizard-crumb"><a data-nav="home">Find your match</a><span>/ Matches</span></nav>
+            <h1>Top ${top.length} match${top.length > 1 ? "es" : ""}</h1>
+          </div>
+          <button type="button" class="link-action" data-action="restart">Change my answers ›</button>
+        </div>
+
+        <div class="match-avatars">
+          ${top.map((m, i) => `
+            <button type="button" class="avatar ${i === idx ? "is-active" : ""}" data-action="select-match" data-index="${i}">
+              <span class="avatar-img"><img src="${escapeHtml(m.dog.imageUrl || APP_LOGO)}" alt="${escapeHtml(m.dog.name)}" /></span>
+              <span class="avatar-label">Top ${i + 1}</span>
+              <span class="avatar-score">${m.score}%</span>
+            </button>
+          `).join("")}
+        </div>
+
+        <div class="results-grid">
+          <section class="match-detail">
+            <div class="match-detail-head">
+              <div class="score-ring"><b>${match.score}<i>%</i></b><span>match</span></div>
+              <div class="match-detail-copy">
+                <h2>${escapeHtml(dog.name)}</h2>
+                <p class="match-breed">${escapeHtml(dog.breed)} · ${escapeHtml(dog.size || "Size n/a")}${dog.color ? " · " + escapeHtml(dog.color) : ""}</p>
+                <p class="match-traits">${clusterTraits(dog.cluster).join(" · ")}</p>
+              </div>
+              <a class="primary-action meet-btn" href="${escapeHtml(dog.contactUrl)}" target="_blank" rel="noreferrer noopener">Meet ${escapeHtml(dog.name)}</a>
+            </div>
+            <div class="match-photo"><img src="${escapeHtml(dog.imageUrl || APP_LOGO)}" alt="${escapeHtml(dog.name)}" /></div>
+            <div class="cluster-pill">${escapeHtml(dog.cluster)}</div>
+            <p class="cluster-headline">${escapeHtml(cluster.headline)}</p>
+          </section>
+
+          <section class="match-breakdown">
+            <h3>How ${escapeHtml(dog.name)} fits you</h3>
+            <div class="compare">
+              <div class="compare-head"><span>This dog</span><span>vs your answers</span></div>
+              ${renderComparisonRows(match).join("")}
+            </div>
+            ${match.flags.length ? `<div class="compare-flags">${match.flags.map((f) => `<span>&#9888; ${escapeHtml(f)}</span>`).join("")}</div>` : ""}
+          </section>
+        </div>
+      </div>
+    </main>
   `;
 }
 
-function renderMatchCard(match) {
+function renderComparisonRows(match) {
   const { dog, subscores } = match;
-  const cluster = CLUSTERS[dog.cluster] || CLUSTERS["Golden Hearts"];
-  return `
-    <article class="match-card">
-      <div class="dog-media">
-        <img src="${escapeHtml(dog.imageUrl || APP_LOGO)}" alt="" />
-        <span>${match.score}%</span>
-      </div>
-      <div class="dog-copy">
-        <div class="dog-title">
-          <div>
-            <h3>${escapeHtml(dog.name)}</h3>
-            <p>${escapeHtml(dog.breed)} · ${escapeHtml(dog.size || "Size not set")} · ${escapeHtml(dog.color || "Color not set")}</p>
-          </div>
-          <a href="${escapeHtml(dog.contactUrl)}" target="_blank" rel="noreferrer">Meet</a>
-        </div>
-        <div class="cluster-pill">${escapeHtml(dog.cluster)}</div>
-        <p>${escapeHtml(cluster.headline)}</p>
-        <dl class="score-grid">
-          <div><dt>Lifestyle</dt><dd>${subscores.lifestyle}</dd></div>
-          <div><dt>Housing</dt><dd>${subscores.housing}</dd></div>
-          <div><dt>Experience</dt><dd>${subscores.experience}</dd></div>
-          <div><dt>Personality</dt><dd>${subscores.personality}</dd></div>
-        </dl>
-        <div class="why-box">
-          <b>Why this match</b>
-          <span>${escapeHtml(cluster.fit)}</span>
-          <span>Preference fit: ${subscores.preference}/100.</span>
-          ${match.flags.length ? `<span class="risk">${escapeHtml(match.flags.join(" "))}</span>` : ""}
-        </div>
-      </div>
-    </article>
-  `;
+  const p = state.profile;
+  const dogExercise = { low: "Calm, short walks", moderate: "Moderate exercise", moderateHigh: "Active", high: "Very active" }[dog.exerciseNeed] || "Moderate exercise";
+  // Experience is a semantic fit: does the owner's experience meet what the dog needs?
+  const rank = { "first-time": 0, some: 1, experienced: 2 };
+  const needed = ["Fiery Dynamos", "Driven Guardians"].includes(dog.cluster) ? "experienced"
+    : dog.cluster === "Cautious Companions" ? "some" : "first-time";
+  const rows = [
+    { label: "Personality", value: dog.cluster, matched: subscores.personality >= 60 },
+    { label: "Energy level", value: dogExercise, matched: subscores.lifestyle >= 65 },
+    { label: "Housing", value: dog.hdbApproved ? "HDB-approved" : "Not HDB-approved", matched: subscores.housing >= 70 },
+    { label: "Experience", value: experienceLabel(dog.cluster), matched: rank[p.lifestyle.experience] >= rank[needed] },
+    { label: "Size", value: dog.size || "Not set", matched: p.preferences.size === "Any" || p.preferences.size === dog.size },
+  ];
+  return rows.map((r) => `
+    <div class="compare-row">
+      <div class="compare-cell"><small>${escapeHtml(r.label)}</small><b>${escapeHtml(r.value)}</b></div>
+      <div class="compare-status ${r.matched ? "ok" : "no"}">${r.matched ? "&#10003; Matched" : "&#9888; Not matched"}</div>
+    </div>
+  `);
 }
 
 function renderPartner() {
@@ -1075,6 +1254,13 @@ function attachEvents() {
     button.addEventListener("click", (event) => {
       event.preventDefault();
       setMode(button.dataset.nav);
+    });
+  });
+
+  app.querySelectorAll("button[data-action]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      handleAction(button.dataset.action, button.dataset);
     });
   });
 
