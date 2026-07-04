@@ -59,39 +59,8 @@ export default function Home({ navigate }) {
             <button className="secondary-action hero-secondary" onClick={() => navigate("match")}><span aria-hidden="true">?</span>See how matching works</button>
           </div>
         </div>
-        <div className="match-preview" aria-label="Example dog match preview">
-          <div className="dog-orbit">
-            <img src="/assets/mochi.jpg" alt="Matched dog preview" />
-          </div>
-          <div className="preview-card compatibility-card">
-            <span>Compatibility</span>
-            <strong>92<i>%</i></strong>
-            <b>Match</b>
-            <p>Great potential for a happy life together.</p>
-            <div className="mini-meter"><span style={{ width: "92%" }} /></div>
-          </div>
-          <div className="preview-card dog-card">
-            <img src="/assets/mochi.jpg" alt="" />
-            <div>
-              <h3>Sunny <small>2 yrs</small></h3>
-              <p>Golden Retriever Mix</p>
-              <span>Rescue Hub, Singapore</span>
-            </div>
-            <dl>
-              <div><dt>Energy</dt><dd><span style={{ width: "76%" }} /></dd></div>
-              <div><dt>Sociability</dt><dd><span style={{ width: "88%" }} /></dd></div>
-              <div><dt>Trainability</dt><dd><span style={{ width: "82%" }} /></dd></div>
-            </dl>
-          </div>
-          <div className="preview-card lifestyle-card">
-            <h3>Your lifestyle</h3>
-            <ul>
-              <li>Active walks</li>
-              <li>Experienced adopter</li>
-              <li>Apartment living</li>
-              <li>Calmer evenings</li>
-            </ul>
-          </div>
+        <div className="hero-dog-visual" aria-label="Golden retriever hero image">
+          <img src="/assets/hero-golden-dog.png" alt="Happy golden retriever sitting on grass" />
         </div>
       </section>
 
