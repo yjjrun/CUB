@@ -2,7 +2,7 @@
   "name": "cub-canine-understanding-buddy",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://cub-buddy.com",
+  "homepage": "https://meetmycub.com",
   "type": "module",
   "scripts": {
     "dev": "vite",

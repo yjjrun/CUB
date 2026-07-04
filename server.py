@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent
 # SQLite database survives restarts and redeploys. Defaults to the repo's data/.
 DATA_DIR = Path(os.environ.get("CUB_DATA_DIR", ROOT / "data"))
 DB_PATH = DATA_DIR / "cub.sqlite"
-PUBLIC_DOMAIN = "https://cub-buddy.com"
+PUBLIC_DOMAIN = "https://meetmycub.com"
 FACTOR_FIELDS = [
     "strangerAggression",
     "ownerAggression",

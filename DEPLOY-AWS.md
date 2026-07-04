@@ -31,9 +31,9 @@ edits. To preview a production build locally: `npm run build && npm run preview`
 ## 1. Key pair
 
 ```bash
-aws ec2 create-key-pair --region us-east-2 --key-name cub-buddy-key \
-  --query KeyMaterial --output text > ~/.ssh/cub-buddy-key.pem
-chmod 400 ~/.ssh/cub-buddy-key.pem
+aws ec2 create-key-pair --region us-east-2 --key-name meetmycub-key \
+  --query KeyMaterial --output text > ~/.ssh/meetmycub-key.pem
+chmod 400 ~/.ssh/meetmycub-key.pem
 ```
 
 ## 2. Launch the instance
@@ -51,7 +51,7 @@ AMI=$(aws ec2 describe-images --region $REGION --owners amazon \
 MYIP=$(curl -s https://checkip.amazonaws.com)/32
 
 SG=$(aws ec2 create-security-group --region $REGION --vpc-id $VPC \
-  --group-name cub-buddy-sg --description "CUB web + ssh" --query GroupId --output text)
+  --group-name meetmycub-sg --description "CUB web + ssh" --query GroupId --output text)
 aws ec2 authorize-security-group-ingress --region $REGION --group-id $SG --ip-permissions \
   "IpProtocol=tcp,FromPort=22,ToPort=22,IpRanges=[{CidrIp=$MYIP}]" \
   "IpProtocol=tcp,FromPort=80,ToPort=80,IpRanges=[{CidrIp=0.0.0.0/0}]" \
@@ -66,10 +66,10 @@ CUB_BRANCH=main bash /opt/cub/deploy/bootstrap.sh
 EOF
 
 IID=$(aws ec2 run-instances --region $REGION \
-  --image-id $AMI --instance-type t4g.micro --key-name cub-buddy-key \
+  --image-id $AMI --instance-type t4g.micro --key-name meetmycub-key \
   --security-group-ids $SG --subnet-id $SUBNET \
   --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":20,"VolumeType":"gp3","DeleteOnTermination":false}}]' \
-  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=cub-buddy}]' \
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=meetmycub}]' \
   --user-data file:///tmp/cub-userdata.sh \
   --query "Instances[0].InstanceId" --output text)
 aws ec2 wait instance-running --region $REGION --instance-ids $IID
@@ -95,16 +95,16 @@ registration needs a paid AWS plan). Add two A records → the Elastic IP:
 | A    | `www` | `<ElasticIP>` |
 
 On Cloudflare, set both to **DNS only** (grey cloud) so Let's Encrypt can validate.
-Confirm with `dig +short cub-buddy.com`.
+Confirm with `dig +short meetmycub.com`.
 
 ## 4. HTTPS
 
 ```bash
-ssh -i ~/.ssh/cub-buddy-key.pem ec2-user@cub-buddy.com
+ssh -i ~/.ssh/meetmycub-key.pem ec2-user@meetmycub.com
 
 sudo dnf -y install python3-pip augeas-libs
 sudo python3 -m pip install certbot certbot-nginx
-sudo certbot --nginx -d cub-buddy.com -d www.cub-buddy.com \
+sudo certbot --nginx -d meetmycub.com -d www.meetmycub.com \
   -m you@example.com --agree-tos --redirect -n
 
 # Auto-renewal (AL2023 has no cron.d) — systemd timer:
@@ -129,7 +129,7 @@ UNIT
 sudo systemctl daemon-reload && sudo systemctl enable --now certbot-renew.timer
 ```
 
-Visit **https://cub-buddy.com/**.
+Visit **https://meetmycub.com/**.
 
 ## Migrating the existing live box to the React build
 
@@ -138,20 +138,20 @@ to the SPA build once (the bootstrap guard won't overwrite the certbot-managed n
 site, so replace it explicitly and re-run certbot):
 
 ```bash
-ssh -i ~/.ssh/cub-buddy-key.pem ec2-user@cub-buddy.com
+ssh -i ~/.ssh/meetmycub-key.pem ec2-user@meetmycub.com
 
 # Pull latest + build; installs Node, produces dist/
 sudo CUB_BRANCH=main bash /opt/cub/deploy/bootstrap.sh
 
 # Swap nginx to the dist-serving config, re-add TLS, reload
 sudo cp /opt/cub/deploy/nginx-cub.conf /etc/nginx/conf.d/cub.conf
-sudo certbot --nginx -d cub-buddy.com -d www.cub-buddy.com --redirect -n
+sudo certbot --nginx -d meetmycub.com -d www.meetmycub.com --redirect -n
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
 ## Operations
 
-- **SSH:** `ssh -i ~/.ssh/cub-buddy-key.pem ec2-user@cub-buddy.com` (resolves via
+- **SSH:** `ssh -i ~/.ssh/meetmycub-key.pem ec2-user@meetmycub.com` (resolves via
   DNS — no IP to track; if you later proxy DNS through Cloudflare, SSH to the Elastic
   IP from `aws ec2 describe-addresses` instead).
 - **Update:** SSH in, then `sudo CUB_BRANCH=main bash /opt/cub/deploy/bootstrap.sh`
@@ -166,6 +166,6 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ## Live reference
 
-us-east-2 · t4g.micro · key `cub-buddy-key` · Cloudflare DNS · Let's Encrypt
-(systemd auto-renew) · branch `main` (live box currently runs `1st-iteration`).
-Current IP: `dig +short cub-buddy.com`.
+us-east-2 · t4g.micro · key `meetmycub-key` · Cloudflare DNS · Let's Encrypt
+(systemd auto-renew) · branch `main`.
+Current IP: `dig +short meetmycub.com`.

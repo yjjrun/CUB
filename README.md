@@ -9,7 +9,7 @@ Website for matching humans and dogs using:
 - SQLite dog storage
 - MBTI-style, lifestyle, housing, experience, and preference-based matching
 
-**Live:** https://cub-buddy.com/
+**Live:** https://meetmycub.com/
 
 ## Run Locally
 

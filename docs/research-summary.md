@@ -1,6 +1,6 @@
 # CUB: Canine Understanding Buddy Matching Logic
 
-Production domain target: https://cub-buddy.com
+Production domain target: https://meetmycub.com
 
 This prototype references the documents supplied with the project:
 
