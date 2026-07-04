@@ -1,0 +1,37 @@
+import { useEffect, useState } from "react";
+import Header from "./components/Header.jsx";
+import Home from "./pages/Home.jsx";
+import MatchPage from "./pages/MatchPage.jsx";
+import PartnerPage from "./pages/PartnerPage.jsx";
+
+function routeFromPath(pathname) {
+  if (pathname === "/match") return "match";
+  if (pathname === "/partner" || pathname === "/shelter") return "partner";
+  return "home";
+}
+
+export default function App() {
+  const [route, setRoute] = useState(routeFromPath(window.location.pathname));
+
+  useEffect(() => {
+    const onPop = () => setRoute(routeFromPath(window.location.pathname));
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  const navigate = (next) => {
+    const path = next === "match" ? "/match" : next === "partner" ? "/partner" : "/";
+    window.history.pushState({}, "", path);
+    setRoute(next);
+    window.scrollTo(0, 0);
+  };
+
+  return (
+    <>
+      <Header route={route} navigate={navigate} />
+      {route === "home" && <Home navigate={navigate} />}
+      {route === "match" && <MatchPage navigate={navigate} />}
+      {route === "partner" && <PartnerPage navigate={navigate} />}
+    </>
+  );
+}
