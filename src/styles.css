@@ -995,7 +995,7 @@ input[type="range"] {
 .match-detail-copy h2 { margin: 0; font-size: 1.6rem; }
 .match-breed { margin: 2px 0 0; color: var(--mocha); }
 .match-traits { margin: 4px 0 0; font-weight: 700; color: var(--coffee); }
-.meet-btn { grid-column: 1 / -1; justify-self: start; text-decoration: none; margin-top: 4px; }
+.meet-btn { grid-column: 1 / -1; justify-self: center; text-decoration: none; margin-top: 12px; min-width: 260px; text-align: center; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .match-photo { margin-top: 18px; border-radius: 14px; overflow: hidden; aspect-ratio: 4 / 3; background: var(--latte); }
 .match-photo img { width: 100%; height: 100%; object-fit: cover; }
 .cluster-headline { color: var(--mocha); margin: 10px 0 0; line-height: 1.5; }

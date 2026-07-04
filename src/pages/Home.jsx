@@ -13,7 +13,7 @@ export default function Home({ navigate }) {
       <section className="home-hero panel">
         <div className="hero-copy">
           <p className="eyebrow">Canine Understanding Buddy</p>
-          <h1>Understand your lifestyle. Meet dogs who fit it.</h1>
+          <h1>Understand your lifestyle.<br />Meet dogs who fit it.</h1>
           <p>
             CUB helps adopters compare personality, daily routine, home setup, and future pet
             preferences against dogs added by trusted shelters and pet shops.
