@@ -284,8 +284,9 @@ img {
 .partners-marquee {
   overflow: hidden;
   border-block: 1px solid var(--line);
-  background: var(--latte);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  background:
+    linear-gradient(rgba(251, 247, 241, 0.82), rgba(251, 247, 241, 0.82)),
+    var(--latte);
 }
 
 .partners-track {
