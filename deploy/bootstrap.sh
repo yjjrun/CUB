@@ -23,7 +23,7 @@ if [ -d "$APP_DIR/.git" ]; then
   # branch into an explicit tracking ref so switching branches works even though
   # the original clone was shallow (it only tracks the branch it was cloned from).
   chown -R cub:cub "$APP_DIR"
-  sudo -u cub git -C "$APP_DIR" fetch --depth 1 origin "$BRANCH:refs/remotes/origin/$BRANCH"
+  sudo -u cub git -C "$APP_DIR" fetch --depth 1 origin "+$BRANCH:refs/remotes/origin/$BRANCH"
   sudo -u cub git -C "$APP_DIR" checkout -B "$BRANCH" "refs/remotes/origin/$BRANCH"
 else
   git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
