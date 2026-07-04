@@ -1,15 +1,32 @@
 # Deploying CUB to AWS (EC2 + nginx)
 
-CUB runs on one Amazon Linux 2023 EC2 instance: `server.py` as a systemd service
-behind nginx, SQLite on the persistent EBS volume, a stable Elastic IP, and Let's
-Encrypt TLS. DNS is any provider (the live site uses Cloudflare).
+CUB is a React (Vite) SPA with a Python JSON API. On one Amazon Linux 2023 EC2
+instance, nginx serves the built frontend from `dist/` and proxies `/api/*` to
+`server.py` (a systemd service); SQLite lives on the persistent EBS volume, behind a
+stable Elastic IP and Let's Encrypt TLS. DNS is any provider (the live site uses
+Cloudflare).
 
 ```
-Browser → DNS → Elastic IP → EC2 → nginx (TLS) → server.py → SQLite on EBS
+Browser → DNS → Elastic IP → EC2 → nginx (TLS)
+                                     ├── /       → dist/ (React SPA)
+                                     └── /api/*  → server.py → SQLite on EBS
 ```
 
 Cost ~$4–8/mo (t4g.micro + 20 GB gp3 + Elastic IP). Examples deploy `main`; swap in
 your branch if not yet merged.
+
+## Local development
+
+Two processes — the Python API and the Vite dev server (hot reload):
+
+```bash
+npm install        # first time only
+npm run api        # terminal 1: Python JSON API on http://127.0.0.1:8000
+npm run dev        # terminal 2: Vite dev server on http://localhost:5173
+```
+
+Open **http://localhost:5173** — Vite proxies `/api/*` to the Python API and hot-reloads
+edits. To preview a production build locally: `npm run build && npm run preview`.
 
 ## 1. Key pair
 
@@ -63,7 +80,9 @@ aws ec2 describe-addresses --region $REGION --allocation-ids $ALLOC \
   --query "Addresses[0].PublicIp" --output text
 ```
 
-Wait ~2–3 min, then open `http://<ElasticIP>/`.
+Wait ~2–3 min, then open `http://<ElasticIP>/`. First boot also installs Node and runs
+`npm ci && npm run build` (needs Node 18+; if the dnf `nodejs` is too old for Vite,
+install `nodejs20` in `bootstrap.sh`).
 
 ## 3. DNS
 
@@ -111,6 +130,24 @@ sudo systemctl daemon-reload && sudo systemctl enable --now certbot-renew.timer
 ```
 
 Visit **https://cub-buddy.com/**.
+
+## Migrating the existing live box to the React build
+
+A box provisioned before the React frontend serves everything from Python. Switch it
+to the SPA build once (the bootstrap guard won't overwrite the certbot-managed nginx
+site, so replace it explicitly and re-run certbot):
+
+```bash
+ssh -i ~/.ssh/cub-buddy-key.pem ec2-user@cub-buddy.com
+
+# Pull latest + build; installs Node, produces dist/
+sudo CUB_BRANCH=main bash /opt/cub/deploy/bootstrap.sh
+
+# Swap nginx to the dist-serving config, re-add TLS, reload
+sudo cp /opt/cub/deploy/nginx-cub.conf /etc/nginx/conf.d/cub.conf
+sudo certbot --nginx -d cub-buddy.com -d www.cub-buddy.com --redirect -n
+sudo nginx -t && sudo systemctl reload nginx
+```
 
 ## Operations
 
