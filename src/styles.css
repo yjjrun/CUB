@@ -1023,3 +1023,11 @@ input[type="range"] {
 .database-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .database-list li { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
 .database-list li span { color: var(--mocha); font-size: 0.85rem; }
+
+/* Match-score tiers: >70% green, 30–70% gold (default), <30% light red */
+.score-ring.tier-high { background: #e5f3e6; border-color: #4a9a52; }
+.score-ring.tier-high b { color: #2f7a37; }
+.score-ring.tier-low { background: #fbe7e3; border-color: #d98b7f; }
+.score-ring.tier-low b { color: #b3402f; }
+.avatar-score.tier-high { color: #3f9142; }
+.avatar-score.tier-low { color: #c0503f; }

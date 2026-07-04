@@ -143,7 +143,7 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
             >
               <span className="avatar-img"><img src={m.dog.imageUrl || APP_LOGO} alt={m.dog.name} /></span>
               <span className="avatar-label">Top {i + 1}</span>
-              <span className="avatar-score">{m.score}%</span>
+              <span className={`avatar-score tier-${scoreTier(m.score)}`}>{m.score}%</span>
             </button>
           ))}
         </div>
@@ -151,7 +151,7 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
         <div className="results-grid">
           <section className="match-detail">
             <div className="match-detail-head">
-              <div className="score-ring"><b>{match.score}<i>%</i></b><span>match</span></div>
+              <div className={`score-ring tier-${scoreTier(match.score)}`}><b>{match.score}<i>%</i></b><span>match</span></div>
               <div className="match-detail-copy">
                 <h2>{dog.name}</h2>
                 <p className="match-breed">{dog.breed} · {dog.size || "Size n/a"}{dog.color ? ` · ${dog.color}` : ""}</p>
@@ -185,6 +185,10 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
       </div>
     </main>
   );
+}
+
+function scoreTier(score) {
+  return score > 70 ? "high" : score < 30 ? "low" : "mid";
 }
 
 function comparisonRows(match, profile) {
