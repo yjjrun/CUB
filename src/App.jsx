@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Header from "./components/Header.jsx";
+import Partners from "./components/Partners.jsx";
 import Home from "./pages/Home.jsx";
 import MatchPage from "./pages/MatchPage.jsx";
 import PartnerPage from "./pages/PartnerPage.jsx";
@@ -32,6 +33,7 @@ export default function App() {
       {route === "home" && <Home navigate={navigate} />}
       {route === "match" && <MatchPage navigate={navigate} />}
       {route === "partner" && <PartnerPage navigate={navigate} />}
+      <Partners />
     </>
   );
 }
