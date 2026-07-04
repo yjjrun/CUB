@@ -31,7 +31,7 @@ export default function Home({ navigate }) {
             to thrive in your home?
           </p>
           <div className="hero-actions">
-            <button className="primary-action hero-action" onClick={() => navigate("match")}>Find your pet!</button>
+            <button className="primary-action hero-action" onClick={() => navigate("match")}>Meet your pet!</button>
           </div>
         </div>
         <div className="hero-logo-card">
