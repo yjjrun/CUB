@@ -1,7 +1,7 @@
 const PET_LINKS = [
-  { label: "Pet news", description: "Heart-warming animal stories and the latest dog news.", url: "https://www.dailypaws.com/", host: "dailypaws.com", image: "/assets/link-news.png" },
+  { label: "Pet News", description: "Heart-warming animal stories and the latest dog news.", url: "https://www.dailypaws.com/", host: "dailypaws.com", image: "/assets/link-news.png" },
   { label: "Food & Snacks", description: "Shop wholesome meals and snacks for every life stage.", url: "https://www.bombom.com/", host: "bombom.com", image: "/assets/link-food-snacks.png" },
-  { label: "Toys & play", description: "Enrichment toys and playful picks for happy pups.", url: "https://vanillapup.com/collections/dog-toys?srsltid=AfmBOorc6oNrFuRP5CIhjO-up8GGq6oyDWfREsMSn3c5Y6yDbFuOAemz", host: "vanillapup.com", image: "/assets/link-toys.png" },
+  { label: "Toys", description: "Enrichment toys and playful picks for happy pups.", url: "https://vanillapup.com/collections/dog-toys?srsltid=AfmBOorc6oNrFuRP5CIhjO-up8GGq6oyDWfREsMSn3c5Y6yDbFuOAemz", host: "vanillapup.com", image: "/assets/link-toys.png" },
   { label: "Health & Wellness", description: "Simple wellness guidance for healthier, happier pets.", url: "https://www.libertyinternational.com/sg/article/pet-wellness-guide", host: "libertyinternational.com", image: "/assets/link-health-wellness.png" },
 ];
 
