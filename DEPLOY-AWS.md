@@ -12,6 +12,8 @@ Browser → DNS → Elastic IP → EC2 → nginx (TLS)
                                      └── /api/*  → server.py → SQLite on EBS
 ```
 
+Current production Elastic IP: `32.236.69.57`.
+
 Cost ~$4–8/mo (t4g.micro + 20 GB gp3 + Elastic IP). Examples deploy `main`; swap in
 your branch if not yet merged.
 
@@ -86,16 +88,16 @@ install `nodejs20` in `bootstrap.sh`).
 
 ## 3. DNS
 
-Register the domain at any registrar (the live site uses Cloudflare; Route 53
-registration needs a paid AWS plan). Add two A records → the Elastic IP:
+Register the domain at any registrar (the live site uses GoDaddy; Route 53
+registration needs a paid AWS plan). Add two records → the Elastic IP:
 
 | Type | Name  | Value         |
 |------|-------|---------------|
-| A    | `@`   | `<ElasticIP>` |
-| A    | `www` | `<ElasticIP>` |
+| A    | `@`   | `32.236.69.57` |
+| CNAME | `www` | `@` |
 
-On Cloudflare, set both to **DNS only** (grey cloud) so Let's Encrypt can validate.
-Confirm with `dig +short meetmycub.com`.
+Delete registrar parking records such as `76.223.105.230` and `13.248.243.5`.
+Confirm with `dig +short meetmycub.com`; it should return `32.236.69.57`.
 
 ## 4. HTTPS
 
@@ -166,6 +168,6 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ## Live reference
 
-us-east-2 · t4g.micro · key `meetmycub-key` · Cloudflare DNS · Let's Encrypt
+us-east-2 · t4g.micro · key `meetmycub-key` · GoDaddy DNS · Let's Encrypt
 (systemd auto-renew) · branch `main`.
-Current IP: `dig +short meetmycub.com`.
+Current Elastic IP: `32.236.69.57`.

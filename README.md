@@ -11,6 +11,8 @@ Website for matching humans and dogs using:
 
 **Live:** https://meetmycub.com/
 
+**Production Elastic IP:** `32.236.69.57`
+
 ## Run Locally
 
 Pure Python standard library — nothing to install.
