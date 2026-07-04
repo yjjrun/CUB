@@ -5,46 +5,58 @@ const PET_LINKS = [
   { label: "Adoption & shelters", description: "Find adoptable dogs and trusted rescues near you.", url: "https://www.petfinder.com", host: "petfinder.com", image: "/assets/link-shelters.jpg" },
 ];
 
+const TRAIT_CHIPS = [
+  { label: "Energy", mark: "En" },
+  { label: "Sociability", mark: "So" },
+  { label: "Trainability", mark: "Tr" },
+  { label: "Fearfulness", mark: "Fe" },
+  { label: "Attachment", mark: "At" },
+  { label: "Separation behaviour", mark: "Sb" },
+  { label: "Sensitivity", mark: "Sn" },
+];
+
+const TRUST_POINTS = [
+  { title: "Research-backed matching", text: "Built on behavioural science and real-world data.", mark: "01" },
+  { title: "Privacy-first", text: "Your data is secure and never sold.", mark: "02" },
+  { title: "Better outcomes", text: "Stronger matches. Happier dogs. Stronger homes.", mark: "03" },
+];
+
 export default function Home({ navigate }) {
   return (
     <main className="screen home-screen">
       <section className="home-hero">
         <div className="hero-copy">
           <p className="eyebrow">Canine Understanding Buddy</p>
-          <h1>Understand your lifestyle. Meet dogs who fit it.</h1>
+          <h1><span className="hero-line">Understand your lifestyle.</span><br />Meet dogs who <span className="hero-fit">fit it.</span></h1>
           <p>
             CUB helps adopters find dogs that fit their lifestyle, experience, and home environment.
           </p>
           <div className="hero-proof">
-            <p>
-              Our matching algorithm profiles each dog across key behavioural traits:
-            </p>
+            <div className="proof-heading">
+              <span aria-hidden="true">CUB</span>
+              <p>Our matching algorithm profiles each dog across key behavioural traits:</p>
+            </div>
             <ul className="trait-list" aria-label="Dog behaviour traits">
-              <li>Energy</li>
-              <li>Sociability</li>
-              <li>Trainability</li>
-              <li>Fearfulness</li>
-              <li>Attachment</li>
-              <li>Separation behaviour</li>
-              <li>Sensitivity</li>
+              {TRAIT_CHIPS.map((trait) => (
+                <li key={trait.label}><span aria-hidden="true">{trait.mark}</span>{trait.label}</li>
+              ))}
             </ul>
-            <p>
-              This approach is informed by established canine behaviour research and large-scale
-              behavioural datasets, alongside collaboration with academic researchers from institutions
-              including the University of Pennsylvania and the National University of Singapore.
-            </p>
-            <p>
-              Adopters are matched based on their routine, activity level, household, dog experience,
-              and ability to meet each dog's needs.
-            </p>
+            <div className="research-note">
+              <span aria-hidden="true">R</span>
+              <p>
+                This approach is informed by established canine behaviour research and draws on large-scale
+                behavioural datasets, alongside collaboration with academic researchers from institutions
+                including the University of Pennsylvania and the National University of Singapore.
+              </p>
+            </div>
           </div>
           <p className="hero-question">
             Instead of matching based only on breed or appearance, CUB asks: which dog is most likely
             to thrive in your home?
           </p>
           <div className="hero-actions">
-            <button className="primary-action hero-action" onClick={() => navigate("match")}>Meet your pet!</button>
-            <button className="secondary-action hero-secondary" onClick={() => navigate("match")}>See how matching works</button>
+            <button className="primary-action hero-action" onClick={() => navigate("match")}><span aria-hidden="true">C</span>Meet your pet!<span aria-hidden="true">-&gt;</span></button>
+            <button className="secondary-action hero-secondary" onClick={() => navigate("match")}><span aria-hidden="true">?</span>See how matching works</button>
           </div>
         </div>
         <div className="match-preview" aria-label="Example dog match preview">
@@ -81,6 +93,18 @@ export default function Home({ navigate }) {
             </ul>
           </div>
         </div>
+      </section>
+
+      <section className="trust-strip" aria-label="Why CUB matching works">
+        {TRUST_POINTS.map((point) => (
+          <article key={point.title}>
+            <span aria-hidden="true">{point.mark}</span>
+            <div>
+              <h2>{point.title}</h2>
+              <p>{point.text}</p>
+            </div>
+          </article>
+        ))}
       </section>
 
       <section className="collab-section">
