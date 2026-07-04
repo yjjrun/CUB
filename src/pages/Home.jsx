@@ -42,8 +42,8 @@ export default function Home({ navigate }) {
             </div>
           </div>
           <p className="hero-question">
-            Instead of matching based only on breed or appearance, CUB asks: which dog is most likely
-            to thrive in your home?
+            <span>Instead of matching based only on breed or appearance, CUB asks:</span> which dog
+            is most likely to thrive in your home?
           </p>
           <div className="hero-actions">
             <button className="primary-action hero-action" onClick={() => navigate("match")}><img src="/assets/paw-white.png" alt="" aria-hidden="true" />Meet your pet!</button>

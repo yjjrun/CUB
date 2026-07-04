@@ -303,6 +303,10 @@ img {
   line-height: 1.35;
 }
 
+.hero-question span {
+  font-weight: 400;
+}
+
 .hero-action {
   width: min(614px, 100%);
 }
