@@ -12,7 +12,7 @@ Browser → DNS → Elastic IP → EC2 → nginx (TLS)
                                      └── /api/*  → server.py → SQLite on EBS
 ```
 
-Current production Elastic IP: `32.236.69.57`.
+The instance keeps a stable Elastic IP (look it up with `aws ec2 describe-addresses`).
 
 Cost ~$4–8/mo (t4g.micro + 20 GB gp3 + Elastic IP). Examples deploy `main`; swap in
 your branch if not yet merged.
@@ -33,9 +33,9 @@ edits. To preview a production build locally: `npm run build && npm run preview`
 ## 1. Key pair
 
 ```bash
-aws ec2 create-key-pair --region us-east-2 --key-name meetmycub-key \
-  --query KeyMaterial --output text > ~/.ssh/meetmycub-key.pem
-chmod 400 ~/.ssh/meetmycub-key.pem
+aws ec2 create-key-pair --region us-east-2 --key-name cub-buddy-key \
+  --query KeyMaterial --output text > ~/.ssh/cub-buddy-key.pem
+chmod 400 ~/.ssh/cub-buddy-key.pem
 ```
 
 ## 2. Launch the instance
@@ -68,7 +68,7 @@ CUB_BRANCH=main bash /opt/cub/deploy/bootstrap.sh
 EOF
 
 IID=$(aws ec2 run-instances --region $REGION \
-  --image-id $AMI --instance-type t4g.micro --key-name meetmycub-key \
+  --image-id $AMI --instance-type t4g.micro --key-name cub-buddy-key \
   --security-group-ids $SG --subnet-id $SUBNET \
   --block-device-mappings '[{"DeviceName":"/dev/xvda","Ebs":{"VolumeSize":20,"VolumeType":"gp3","DeleteOnTermination":false}}]' \
   --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=meetmycub}]' \
@@ -88,21 +88,22 @@ install `nodejs20` in `bootstrap.sh`).
 
 ## 3. DNS
 
-Register the domain at any registrar (the live site uses GoDaddy; Route 53
-registration needs a paid AWS plan). Add two records → the Elastic IP:
+Register the domain at any registrar (Route 53 registration needs a paid AWS plan;
+cub-buddy.com is currently on Cloudflare). Point it at the instance's Elastic IP —
+find that with `aws ec2 describe-addresses --region us-east-2`:
 
-| Type | Name  | Value         |
-|------|-------|---------------|
-| A    | `@`   | `32.236.69.57` |
-| CNAME | `www` | `@` |
+| Type  | Name  | Value         |
+|-------|-------|---------------|
+| A     | `@`   | `<ElasticIP>` |
+| CNAME | `www` | `@`           |
 
-Delete registrar parking records such as `76.223.105.230` and `13.248.243.5`.
-Confirm with `dig +short meetmycub.com`; it should return `32.236.69.57`.
+Remove any default registrar parking records first, then confirm with
+`dig +short meetmycub.com` — it should return the Elastic IP.
 
 ## 4. HTTPS
 
 ```bash
-ssh -i ~/.ssh/meetmycub-key.pem ec2-user@meetmycub.com
+ssh -i ~/.ssh/cub-buddy-key.pem ec2-user@meetmycub.com
 
 sudo dnf -y install python3-pip augeas-libs
 sudo python3 -m pip install certbot certbot-nginx
@@ -140,7 +141,7 @@ to the SPA build once (the bootstrap guard won't overwrite the certbot-managed n
 site, so replace it explicitly and re-run certbot):
 
 ```bash
-ssh -i ~/.ssh/meetmycub-key.pem ec2-user@meetmycub.com
+ssh -i ~/.ssh/cub-buddy-key.pem ec2-user@meetmycub.com
 
 # Pull latest + build; installs Node, produces dist/
 sudo CUB_BRANCH=main bash /opt/cub/deploy/bootstrap.sh
@@ -151,9 +152,27 @@ sudo certbot --nginx -d meetmycub.com -d www.meetmycub.com --redirect -n
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
+## Migrating the live domain (cub-buddy.com → meetmycub.com)
+
+The live box currently answers on `cub-buddy.com` (Cloudflare DNS + a Let's Encrypt
+cert for that name). To move it to `meetmycub.com` on the **same instance** — no new box:
+
+1. **Register `meetmycub.com`** and add DNS records pointing at the instance's Elastic
+   IP (see §3). Wait for `dig +short meetmycub.com` to return it.
+2. **Issue the new cert & switch nginx.** SSH via the still-resolving `cub-buddy.com`
+   (or the Elastic IP) until DNS cuts over:
+   ```bash
+   ssh -i ~/.ssh/cub-buddy-key.pem ec2-user@cub-buddy.com
+   sudo cp /opt/cub/deploy/nginx-cub.conf /etc/nginx/conf.d/cub.conf   # server_name meetmycub.com
+   sudo certbot --nginx -d meetmycub.com -d www.meetmycub.com --redirect -n
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
+3. **(Optional) keep `cub-buddy.com` as a 301 redirect** to meetmycub.com, or retire
+   its DNS/cert once traffic has moved.
+
 ## Operations
 
-- **SSH:** `ssh -i ~/.ssh/meetmycub-key.pem ec2-user@meetmycub.com` (resolves via
+- **SSH:** `ssh -i ~/.ssh/cub-buddy-key.pem ec2-user@meetmycub.com` (resolves via
   DNS — no IP to track; if you later proxy DNS through Cloudflare, SSH to the Elastic
   IP from `aws ec2 describe-addresses` instead).
 - **Update:** SSH in, then `sudo CUB_BRANCH=main bash /opt/cub/deploy/bootstrap.sh`
@@ -168,6 +187,6 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ## Live reference
 
-us-east-2 · t4g.micro · key `meetmycub-key` · GoDaddy DNS · Let's Encrypt
-(systemd auto-renew) · branch `main`.
-Current Elastic IP: `32.236.69.57`.
+us-east-2 · t4g.micro · key `cub-buddy-key` · Let's Encrypt (systemd auto-renew) ·
+branch `main`. Live today on `cub-buddy.com` (Cloudflare); migrating to
+`meetmycub.com`. Elastic IP: `aws ec2 describe-addresses --region us-east-2`.
