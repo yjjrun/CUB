@@ -152,8 +152,8 @@ img {
   gap: 36px;
   align-items: center;
   min-height: 650px;
-  padding: 26px 0 26px;
-  margin-bottom: 0;
+  padding: 30px 0 42px;
+  margin-bottom: 24px;
   border: 0;
   background: transparent;
   box-shadow: none;
@@ -216,31 +216,8 @@ img {
 }
 
 .proof-heading {
-  display: grid;
-  grid-template-columns: 32px 1fr;
-  align-items: center;
-  gap: 12px;
   color: var(--coffee);
   font-weight: 900;
-}
-
-.proof-heading > span,
-.research-note > span,
-.trust-strip article > span {
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--sage);
-  color: var(--cream);
-  font-weight: 950;
-  box-shadow: 0 10px 20px rgba(74, 36, 17, 0.14);
-}
-
-.proof-heading > span {
-  width: 32px;
-  height: 32px;
-  font-size: 0.55rem;
-  letter-spacing: 0.04em;
 }
 
 .proof-heading p {
@@ -292,21 +269,9 @@ img {
 }
 
 .research-note {
-  display: grid;
-  grid-template-columns: 42px 1fr;
-  gap: 18px;
-  align-items: start;
   margin-top: 2px;
   padding-top: 18px;
   border-top: 1px solid rgba(218, 200, 184, 0.8);
-}
-
-.research-note > span {
-  width: 42px;
-  height: 42px;
-  background: var(--sage-light);
-  color: var(--sage);
-  font-size: 0.88rem;
 }
 
 .hero-copy .hero-question {
@@ -320,7 +285,7 @@ img {
 }
 
 .hero-action {
-  width: min(300px, 100%);
+  width: min(614px, 100%);
 }
 
 .hero-actions {
@@ -331,49 +296,24 @@ img {
   margin-top: 4px;
 }
 
-.hero-secondary {
-  width: min(300px, 100%);
-  border: 1px solid rgba(74, 36, 17, 0.26);
-  background: rgba(255, 250, 245, 0.72);
-  color: var(--coffee);
-}
-
 .hero-actions button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 14px;
+  gap: 16px;
   padding: 0 24px;
   white-space: nowrap;
 }
 
 .hero-action {
-  justify-content: space-between;
+  justify-content: center;
 }
 
-.hero-actions button span:first-child {
-  display: grid;
-  place-items: center;
+.hero-action img {
   width: 28px;
   height: 28px;
   flex: 0 0 auto;
-  border-radius: 50%;
-  font-size: 0.78rem;
-  font-weight: 950;
-}
-
-.hero-action span:first-child {
-  border: 1px solid rgba(255, 250, 245, 0.72);
-}
-
-.hero-secondary span:first-child {
-  border: 1px solid rgba(104, 122, 103, 0.52);
-  color: var(--sage);
-}
-
-.hero-action span:last-child {
-  margin-left: auto;
-  font-weight: 950;
+  object-fit: contain;
 }
 
 .hero-dog-visual {
@@ -600,52 +540,6 @@ img {
   margin-right: 8px;
   color: var(--success);
   font-weight: 950;
-}
-
-.trust-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: min(920px, 78%);
-  margin: -18px auto 34px;
-  overflow: hidden;
-  border: 1px solid rgba(218, 200, 184, 0.9);
-  border-radius: 18px 18px 0 0;
-  background: rgba(255, 250, 245, 0.86);
-  box-shadow: 0 18px 44px rgba(74, 36, 17, 0.1);
-  backdrop-filter: blur(14px);
-}
-
-.trust-strip article {
-  display: grid;
-  grid-template-columns: 54px 1fr;
-  gap: 16px;
-  align-items: start;
-  min-height: 106px;
-  padding: 22px 28px;
-}
-
-.trust-strip article + article {
-  border-left: 1px solid rgba(218, 200, 184, 0.9);
-}
-
-.trust-strip article > span {
-  width: 54px;
-  height: 54px;
-  font-size: 0.82rem;
-}
-
-.trust-strip h2 {
-  margin: 0 0 6px;
-  color: var(--coffee);
-  font-size: 1rem;
-  line-height: 1.2;
-}
-
-.trust-strip p {
-  margin: 0;
-  color: var(--mocha);
-  font-size: 0.82rem;
-  line-height: 1.45;
 }
 
 .collab-section {
@@ -988,7 +882,7 @@ input[type="range"] {
 }
 
 .hero-actions .hero-action {
-  width: min(300px, 100%);
+  width: min(614px, 100%);
   margin-top: 0;
 }
 
@@ -1401,9 +1295,6 @@ input[type="range"] {
     width: min(680px, 100%);
   }
 
-  .trust-strip {
-    width: 100%;
-  }
 }
 
 @media (max-width: 760px) {
@@ -1451,16 +1342,6 @@ input[type="range"] {
     gap: 14px;
   }
 
-  .proof-heading,
-  .research-note {
-    grid-template-columns: 1fr;
-  }
-
-  .proof-heading > span,
-  .research-note > span {
-    display: none;
-  }
-
   .trait-list {
     gap: 8px;
   }
@@ -1472,8 +1353,7 @@ input[type="range"] {
   }
 
   .hero-actions button,
-  .hero-actions .hero-action,
-  .hero-secondary {
+  .hero-actions .hero-action {
     width: 100%;
   }
 
@@ -1534,23 +1414,6 @@ input[type="range"] {
     right: 0;
     bottom: 0;
     width: min(230px, 72vw);
-  }
-
-  .trust-strip {
-    grid-template-columns: 1fr;
-    width: 100%;
-    margin: 4px 0 28px;
-    border-radius: 14px;
-  }
-
-  .trust-strip article {
-    min-height: 0;
-    padding: 18px;
-  }
-
-  .trust-strip article + article {
-    border-top: 1px solid rgba(218, 200, 184, 0.9);
-    border-left: 0;
   }
 
   .form-split,

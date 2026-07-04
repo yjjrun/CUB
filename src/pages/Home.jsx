@@ -15,25 +15,17 @@ const TRAIT_CHIPS = [
   { label: "Sensitivity", mark: "Sn" },
 ];
 
-const TRUST_POINTS = [
-  { title: "Research-backed matching", text: "Built on behavioural science and real-world data.", mark: "01" },
-  { title: "Privacy-first", text: "Your data is secure and never sold.", mark: "02" },
-  { title: "Better outcomes", text: "Stronger matches. Happier dogs. Stronger homes.", mark: "03" },
-];
-
 export default function Home({ navigate }) {
   return (
     <main className="screen home-screen">
       <section className="home-hero">
         <div className="hero-copy">
-          <p className="eyebrow">Canine Understanding Buddy</p>
           <h1><span className="hero-line">Understand your lifestyle.</span><br />Meet dogs who <span className="hero-fit">fit it.</span></h1>
           <p>
             CUB helps adopters find dogs that fit their lifestyle, experience, and home environment.
           </p>
           <div className="hero-proof">
             <div className="proof-heading">
-              <span aria-hidden="true">CUB</span>
               <p>Our matching algorithm profiles each dog across key behavioural traits:</p>
             </div>
             <ul className="trait-list" aria-label="Dog behaviour traits">
@@ -42,7 +34,6 @@ export default function Home({ navigate }) {
               ))}
             </ul>
             <div className="research-note">
-              <span aria-hidden="true">R</span>
               <p>
                 This approach is informed by established canine behaviour research and draws on large-scale
                 behavioural datasets, alongside collaboration with academic researchers from institutions
@@ -55,25 +46,12 @@ export default function Home({ navigate }) {
             to thrive in your home?
           </p>
           <div className="hero-actions">
-            <button className="primary-action hero-action" onClick={() => navigate("match")}><span aria-hidden="true">C</span>Meet your pet!<span aria-hidden="true">-&gt;</span></button>
-            <button className="secondary-action hero-secondary" onClick={() => navigate("match")}><span aria-hidden="true">?</span>See how matching works</button>
+            <button className="primary-action hero-action" onClick={() => navigate("match")}><img src="/assets/paw-white.png" alt="" aria-hidden="true" />Meet your pet!</button>
           </div>
         </div>
         <div className="hero-dog-visual" aria-label="Golden retriever hero image">
           <img src="/assets/hero-golden-dog.png" alt="Happy golden retriever sitting on grass" />
         </div>
-      </section>
-
-      <section className="trust-strip" aria-label="Why CUB matching works">
-        {TRUST_POINTS.map((point) => (
-          <article key={point.title}>
-            <span aria-hidden="true">{point.mark}</span>
-            <div>
-              <h2>{point.title}</h2>
-              <p>{point.text}</p>
-            </div>
-          </article>
-        ))}
       </section>
 
       <section className="collab-section">
