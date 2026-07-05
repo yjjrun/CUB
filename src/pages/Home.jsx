@@ -21,7 +21,7 @@ export default function Home({ navigate }) {
       <section className="home-hero">
         <div className="hero-copy">
           <h1><span className="hero-line">Understand your lifestyle.</span><br />Meet dogs who <span className="hero-fit">fit it.</span></h1>
-          <p>
+          <p className="hero-intro">
             CUB helps adopters find dogs that fit their lifestyle, experience, and home environment.
           </p>
           <div className="hero-proof">

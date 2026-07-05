@@ -1612,7 +1612,31 @@ input[type="range"] {
   }
 
   .hero-copy {
-    gap: 14px;
+    display: contents;
+  }
+
+  .hero-copy h1 {
+    order: 1;
+  }
+
+  .hero-intro {
+    order: 2;
+  }
+
+  .hero-dog-visual {
+    order: 3;
+  }
+
+  .hero-proof {
+    order: 4;
+  }
+
+  .hero-question {
+    order: 5;
+  }
+
+  .hero-actions {
+    order: 6;
   }
 
   .trait-list {
