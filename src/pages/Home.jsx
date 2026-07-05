@@ -6,13 +6,13 @@ const PET_LINKS = [
 ];
 
 const TRAIT_CHIPS = [
-  { label: "Energy", mark: "En" },
-  { label: "Sociability", mark: "So" },
-  { label: "Trainability", mark: "Tr" },
-  { label: "Fearfulness", mark: "Fe" },
-  { label: "Attachment", mark: "At" },
-  { label: "Separation behaviour", mark: "Sb" },
-  { label: "Sensitivity", mark: "Sn" },
+  { label: "Energy", mark: "En", tone: "energy" },
+  { label: "Sociability", mark: "So", tone: "sociability" },
+  { label: "Trainability", mark: "Tr", tone: "trainability" },
+  { label: "Fearfulness", mark: "Fe", tone: "fearfulness" },
+  { label: "Attachment", mark: "At", tone: "attachment" },
+  { label: "Separation behaviour", mark: "Sb", tone: "separation" },
+  { label: "Sensitivity", mark: "Sn", tone: "sensitivity" },
 ];
 
 export default function Home({ navigate }) {
@@ -30,7 +30,7 @@ export default function Home({ navigate }) {
             </div>
             <ul className="trait-list" aria-label="Dog behaviour traits">
               {TRAIT_CHIPS.map((trait) => (
-                <li key={trait.label}><span aria-hidden="true">{trait.mark}</span>{trait.label}</li>
+                <li key={trait.label} className={`trait-${trait.tone}`}><span aria-hidden="true">{trait.mark}</span>{trait.label}</li>
               ))}
             </ul>
             <div className="research-note">

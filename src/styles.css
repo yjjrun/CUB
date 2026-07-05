@@ -291,9 +291,39 @@ img {
   font-weight: 950;
 }
 
-.trait-list li:first-child span {
+.trait-list li.trait-energy span {
   background: var(--gold-soft);
   color: var(--gold);
+}
+
+.trait-list li.trait-sociability span {
+  background: #e3ebe0;
+  color: #536b3e;
+}
+
+.trait-list li.trait-trainability span {
+  background: #efe0d1;
+  color: #8a5a34;
+}
+
+.trait-list li.trait-fearfulness span {
+  background: #dceaf5;
+  color: #426f8f;
+}
+
+.trait-list li.trait-attachment span {
+  background: #f4dfea;
+  color: #a24a75;
+}
+
+.trait-list li.trait-separation span {
+  background: #f8e1c2;
+  color: #c56d21;
+}
+
+.trait-list li.trait-sensitivity span {
+  background: #f0d9d5;
+  color: #9a4038;
 }
 
 .research-note {

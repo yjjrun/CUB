@@ -4,7 +4,6 @@ export default function FaqPage() {
   return (
     <main className="screen faq-page">
       <header className="faq-page-head">
-        <p className="eyebrow">For Adopters</p>
         <h1>Frequently Asked Questions</h1>
         <p>
           Simple answers about using CUB, understanding match scores, and choosing a dog with more
