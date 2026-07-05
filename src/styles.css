@@ -164,7 +164,7 @@ img {
   z-index: -1;
   width: 560px;
   height: 560px;
-  background: url("/assets/cub-logo.png") center / contain no-repeat;
+  background: url("/assets/favicon-cub-transparent.png") center / contain no-repeat;
   opacity: 0.045;
   pointer-events: none;
 }
