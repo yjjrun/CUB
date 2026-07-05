@@ -13,15 +13,28 @@ Website for matching humans and dogs using:
 
 **Production Elastic IP:** `32.236.69.57`
 
+## Tech stack
+
+- **Frontend:** React 18 + Vite — a single-page app built to static assets (`dist/`)
+- **Backend:** Python standard-library HTTP server (`server.py`) exposing a small JSON
+  API — no web framework, no pip dependencies
+- **Storage:** SQLite
+- **Hosting:** AWS EC2 (Amazon Linux 2023) with nginx serving the built SPA and proxying
+  `/api/*` to the Python app, Let's Encrypt TLS, and Cloudflare Web Analytics
+
 ## Run Locally
 
-Pure Python standard library — nothing to install.
+The frontend runs on Vite (hot reload); the backend is the dependency-free Python API.
+Run both, in two terminals:
 
 ```bash
-python3 server.py --host 127.0.0.1 --port 4173
+npm install        # first time only
+npm run api        # terminal 1: Python JSON API on http://127.0.0.1:8000
+npm run dev        # terminal 2: Vite dev server on http://localhost:5173
 ```
 
-Open http://127.0.0.1:4173/
+Open http://localhost:5173 — Vite proxies `/api/*` to the Python API and hot-reloads
+edits. Production build: `npm run build` (outputs `dist/`); preview with `npm run preview`.
 
 ### Configuration
 
@@ -60,11 +73,11 @@ Encrypt TLS. See **[DEPLOY-AWS.md](DEPLOY-AWS.md)** for the full runbook. A
 
 ## Project layout
 
-| Path                  | Purpose                                          |
-|-----------------------|--------------------------------------------------|
-| `index.html`, `src/`  | Frontend SPA (vanilla JS + CSS)                  |
-| `server.py`           | Stdlib HTTP server + JSON API + SQLite           |
-| `assets/`             | Logos and dog images                             |
-| `data/cub.sqlite`     | Dog records                                      |
-| `deploy/`             | Host provisioning scripts (systemd, nginx, bootstrap) |
-| `docs/`               | Research summary and references                  |
+| Path                                   | Purpose                                             |
+|----------------------------------------|-----------------------------------------------------|
+| `index.html`, `vite.config.js`, `src/` | React + Vite SPA (`components/`, `pages/`, `lib/`)  |
+| `server.py`                            | Python stdlib HTTP server + JSON API + SQLite       |
+| `public/assets/`                       | Logos and dog images (served statically)            |
+| `data/cub.sqlite`                      | Dog records                                         |
+| `deploy/`                              | Host provisioning scripts (systemd, nginx, bootstrap) |
+| `docs/`                                | Research summary and references                     |
