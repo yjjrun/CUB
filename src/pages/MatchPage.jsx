@@ -231,11 +231,24 @@ function matchExplanation(match, profile) {
   const preferenceText = profile.preferences.size !== "Any"
     ? `Your stated size preference also points toward ${dog.size || "this size range"}.`
     : "Because you did not limit the match by size, CUB is prioritising welfare fit over appearance.";
+  const householdText = [
+    profile.lifestyle.trainingCommitment === "daily"
+      ? "Your daily training capacity gives more flexibility for dogs who need steady practice."
+      : profile.lifestyle.trainingCommitment === "several times a week"
+        ? "Your regular training capacity supports dogs who benefit from repeated practice."
+        : "Your weekly training capacity is considered so CUB avoids over-matching you with dogs who need intensive daily work.",
+    profile.lifestyle.children === "yes"
+      ? "Because there are children at home, calmer and more predictable dog profiles are treated more favourably."
+      : "Because there are no children at home, the match has more room to consider dogs who prefer quieter adult routines.",
+    profile.lifestyle.otherPets === "yes"
+      ? "Because you already have other pets, the score is more cautious with dogs likely to need slow introductions or a single-pet setup."
+      : "Because this dog would not need to share the home with other pets, single-pet preferences are less limiting.",
+  ].join(" ");
 
   const paragraphs = [
     `${dogLabel} scored ${score}% because the main care demands line up with what you told CUB. ${housingText}, and ${exerciseLabel} should fit your stated activity level better than a dog with very different daily needs.`,
     `${personalityText}: ${dogName} is classified as ${dog.cluster}, which means ${cluster.fit.toLowerCase()} Your results suggest you may be able to offer the mix of routine, empathy, activity, and boundaries this profile usually benefits from.`,
-    `CUB also considered practical details. You described yourself as a ${experience}, ${awayText}, and ${preferenceText} These are the everyday factors that often decide whether an adoption feels manageable after the first few weeks.`,
+    `CUB also considered practical details. You described yourself as a ${experience}, ${awayText}, and ${preferenceText} ${householdText} These are the everyday factors that often decide whether an adoption feels manageable after the first few weeks.`,
   ];
 
   if (flags.length) {
@@ -259,6 +272,8 @@ function comparisonRows(match, profile) {
     { label: "Energy level", value: dogExercise, matched: subscores.lifestyle >= 65 },
     { label: "Housing", value: dog.hdbApproved ? "HDB-approved" : "Not HDB-approved", matched: subscores.housing >= 70 },
     { label: "Experience", value: experienceLabel(dog.cluster), matched: rank[profile.lifestyle.experience] >= rank[needed] },
+    { label: "Care routine", value: profile.lifestyle.trainingCommitment || "Not set", matched: subscores.care >= 65 },
+    { label: "Household", value: `${profile.lifestyle.children === "yes" ? "Children" : "No children"} · ${profile.lifestyle.otherPets === "yes" ? "Other pets" : "No other pets"}`, matched: subscores.care >= 65 },
     { label: "Size", value: dog.size || "Not set", matched: profile.preferences.size === "Any" || profile.preferences.size === dog.size },
   ];
 }

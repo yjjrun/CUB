@@ -179,6 +179,28 @@ function preferenceFit(dog, preferences) {
   return clamp(score, 0, 100);
 }
 
+function careFitScore(dog, lifestyle) {
+  const demanding = ["Fiery Dynamos", "Driven Guardians", "Cautious Companions"].includes(dog.cluster);
+  const social = ["Joyful Sparks", "Golden Hearts", "Gentle Giants"].includes(dog.cluster);
+  const commitmentScore = {
+    weekly: demanding ? 58 : 82,
+    "several times a week": demanding ? 78 : 92,
+    daily: 98,
+  }[lifestyle.trainingCommitment] || 82;
+
+  let householdScore = 100;
+  if (lifestyle.children === "yes") {
+    if (["Fiery Dynamos", "Cautious Companions", "Gentle Wallflowers"].includes(dog.cluster)) householdScore -= 24;
+    if (dog.size === "Large" && dog.cluster !== "Gentle Giants") householdScore -= 8;
+  }
+  if (lifestyle.otherPets === "yes") {
+    if (["Fiery Dynamos", "Driven Guardians", "Cautious Companions"].includes(dog.cluster)) householdScore -= 22;
+    if (social) householdScore += 6;
+  }
+
+  return Math.round(clamp(commitmentScore * 0.55 + householdScore * 0.45, 0, 100));
+}
+
 export function scoreDog(dog, profile) {
   const mbti = computeMbti(profile);
   const exerciseFits = normaliseExerciseFits(dog);
@@ -209,8 +231,16 @@ export function scoreDog(dog, profile) {
     : behaviorPersonalityScore;
   const personalityScore = (0.85 * behaviorPersonalityScore) + (0.15 * breedPersonalityScore);
   const preferenceScore = preferenceFit(dog, profile.preferences);
+  const careScore = careFitScore(dog, profile.lifestyle);
 
-  const base = 0.3 * lifestyleScore + 0.25 * housingScore + 0.15 * expScore + 0.3 * personalityScore;
+  const base = (
+    0.26 * lifestyleScore
+    + 0.22 * housingScore
+    + 0.14 * expScore
+    + 0.28 * personalityScore
+    + 0.07 * preferenceScore
+    + 0.03 * careScore
+  );
   let finalScore = Math.round(base);
   const flags = [];
 
@@ -226,6 +256,14 @@ export function scoreDog(dog, profile) {
     finalScore = Math.min(finalScore, 55);
     flags.push("Housing check needed for HDB suitability.");
   }
+  if (profile.lifestyle.children === "yes" && ["Fiery Dynamos", "Cautious Companions"].includes(dog.cluster)) {
+    finalScore = Math.min(finalScore, 72);
+    flags.push("A calmer or adult-only home may be safer for this profile.");
+  }
+  if (profile.lifestyle.otherPets === "yes" && ["Fiery Dynamos", "Driven Guardians"].includes(dog.cluster)) {
+    finalScore = Math.min(finalScore, 74);
+    flags.push("Slow introductions or a single-pet home may be needed.");
+  }
 
   return {
     dog,
@@ -237,6 +275,7 @@ export function scoreDog(dog, profile) {
       experience: Math.round(expScore),
       personality: Math.round(personalityScore),
       preference: Math.round(preferenceScore),
+      care: Math.round(careScore),
     },
     flags,
   };

@@ -14,30 +14,6 @@ export const DEFAULT_PROFILE = {
   preferences: { size: "Any", color: "", breed: "" },
 };
 
-function setAxis(profile, axis, lean) {
-  const answers = { ...profile.answers };
-  for (const [id, ax, positiveLetter] of MBTI_QUESTIONS) {
-    if (ax !== axis) continue;
-    if (lean === "balanced") {
-      answers[id] = 3;
-      continue;
-    }
-    const isFirstLetter = positiveLetter === ax[0];
-    answers[id] = isFirstLetter === (lean === "first") ? 5 : 1;
-  }
-  return { ...profile, answers };
-}
-
-function getAxis(profile, axis) {
-  let sum = 0;
-  for (const [id, ax, positiveLetter] of MBTI_QUESTIONS) {
-    if (ax !== axis) continue;
-    const sign = positiveLetter === ax[0] ? 1 : -1;
-    sum += (Number(profile.answers[id]) - 3) * sign;
-  }
-  return sum > 0 ? "first" : sum < 0 ? "second" : "balanced";
-}
-
 const EXERCISE_BANDS = { low: 30, moderate: 70, high: 110 };
 const getExerciseBand = (p) => {
   const m = Number(p.lifestyle.exerciseMinutes);
@@ -49,56 +25,28 @@ const getAwayBand = (p) => {
 };
 const setLifestyle = (p, key, value) => ({ ...p, lifestyle: { ...p.lifestyle, [key]: value } });
 const setPref = (p, key, value) => ({ ...p, preferences: { ...p.preferences, [key]: value } });
+const setAnswer = (p, id, value) => ({ ...p, answers: { ...p.answers, [id]: Number(value) } });
+
+const LIKERT_OPTIONS = [
+  { value: 1, label: "Strongly disagree", sub: "This does not sound like me." },
+  { value: 2, label: "Disagree", sub: "Only slightly true for me." },
+  { value: 3, label: "Neutral", sub: "Somewhere in the middle." },
+  { value: 4, label: "Agree", sub: "This mostly sounds like me." },
+  { value: 5, label: "Strongly agree", sub: "This describes me very well." },
+];
+
+const PERSONALITY_STEPS = MBTI_QUESTIONS.map(([id, axis, , label], index) => ({
+  crumb: "Personality",
+  title: label,
+  desc: `Personality question ${index + 1} of ${MBTI_QUESTIONS.length}. Choose the response that fits you best.`,
+  get: (p) => Number(p.answers[id] ?? 3),
+  apply: (p, v) => setAnswer(p, id, v),
+  options: LIKERT_OPTIONS,
+  axis,
+}));
 
 export const MATCH_STEPS = [
-  {
-    crumb: "Personality",
-    title: "How do you recharge?",
-    desc: "Some dogs thrive on outings and company; others love a calm home. Let's find your rhythm.",
-    get: (p) => getAxis(p, "EI"),
-    apply: (p, v) => setAxis(p, "EI", v),
-    options: [
-      { value: "first", label: "Out and about", sub: "Social plans and activity energize me." },
-      { value: "balanced", label: "A balanced mix", sub: "Some outings, some downtime." },
-      { value: "second", label: "Calm at home", sub: "Quiet time is how I recharge." },
-    ],
-  },
-  {
-    crumb: "Personality",
-    title: "How do you take things in?",
-    desc: "This shapes whether you'll enjoy a predictable dog or one that keeps you guessing.",
-    get: (p) => getAxis(p, "SN"),
-    apply: (p, v) => setAxis(p, "SN", v),
-    options: [
-      { value: "first", label: "Practical details", sub: "I notice concrete, here-and-now facts." },
-      { value: "balanced", label: "A balanced mix", sub: "A bit of both." },
-      { value: "second", label: "Patterns and ideas", sub: "I love possibilities and the big picture." },
-    ],
-  },
-  {
-    crumb: "Personality",
-    title: "How do you make decisions?",
-    desc: "This affects how you'll handle training and setting boundaries.",
-    get: (p) => getAxis(p, "TF"),
-    apply: (p, v) => setAxis(p, "TF", v),
-    options: [
-      { value: "first", label: "Logic and rules", sub: "Consistent rules keep me on track." },
-      { value: "balanced", label: "A balanced mix", sub: "Head and heart together." },
-      { value: "second", label: "Empathy and feeling", sub: "I lead with how everyone feels." },
-    ],
-  },
-  {
-    crumb: "Personality",
-    title: "How do you like your days?",
-    desc: "Routine-loving dogs and spontaneous dogs suit different people.",
-    get: (p) => getAxis(p, "JP"),
-    apply: (p, v) => setAxis(p, "JP", v),
-    options: [
-      { value: "first", label: "Planned and structured", sub: "Schedules and routines feel good." },
-      { value: "balanced", label: "A balanced mix", sub: "Flexible, with some structure." },
-      { value: "second", label: "Flexible and spontaneous", sub: "I go with the flow." },
-    ],
-  },
+  ...PERSONALITY_STEPS,
   {
     crumb: "Lifestyle",
     title: "Where will your dog live?",
@@ -148,6 +96,40 @@ export const MATCH_STEPS = [
     ],
   },
   {
+    crumb: "Experience",
+    title: "How often can you work on training?",
+    desc: "Dogs with higher support needs do best when training can be consistent.",
+    get: (p) => p.lifestyle.trainingCommitment,
+    apply: (p, v) => setLifestyle(p, "trainingCommitment", v),
+    options: [
+      { value: "weekly", label: "Weekly", sub: "I can set aside time most weeks." },
+      { value: "several times a week", label: "Several times a week", sub: "I can practise regularly." },
+      { value: "daily", label: "Daily", sub: "I can build training into everyday life." },
+    ],
+  },
+  {
+    crumb: "Household",
+    title: "Are there children at home?",
+    desc: "Some dogs need calmer, more predictable households.",
+    get: (p) => p.lifestyle.children,
+    apply: (p, v) => setLifestyle(p, "children", v),
+    options: [
+      { value: "no", label: "No children at home", sub: "The home is adult-only or usually quiet." },
+      { value: "yes", label: "Yes, children at home", sub: "The dog should be comfortable with children." },
+    ],
+  },
+  {
+    crumb: "Household",
+    title: "Do you already have other pets?",
+    desc: "This helps us avoid matches that may need a single-pet home.",
+    get: (p) => p.lifestyle.otherPets,
+    apply: (p, v) => setLifestyle(p, "otherPets", v),
+    options: [
+      { value: "no", label: "No other pets", sub: "This dog would be the only pet." },
+      { value: "yes", label: "Yes, other pets", sub: "The dog should be able to share a home." },
+    ],
+  },
+  {
     crumb: "Preferences",
     title: "Any size preference?",
     desc: "We factor this in, but welfare fit always comes first.",
@@ -158,6 +140,35 @@ export const MATCH_STEPS = [
       { value: "Small", label: "Small", sub: "Lap-sized companions." },
       { value: "Medium", label: "Medium", sub: "A balance of both." },
       { value: "Large", label: "Large", sub: "Big, sturdy dogs." },
+    ],
+  },
+  {
+    crumb: "Preferences",
+    title: "Any coat colour preference?",
+    desc: "This is optional. Compatibility still comes before appearance.",
+    get: (p) => p.preferences.color,
+    apply: (p, v) => setPref(p, "color", v),
+    options: [
+      { value: "", label: "No preference", sub: "Show me every coat colour." },
+      { value: "brown", label: "Brown", sub: "Warm brown or chocolate coats." },
+      { value: "black", label: "Black", sub: "Black or mostly black coats." },
+      { value: "white", label: "White", sub: "White or cream coats." },
+      { value: "golden", label: "Golden", sub: "Golden, yellow, or tan coats." },
+    ],
+  },
+  {
+    crumb: "Preferences",
+    title: "Any breed preference?",
+    desc: "Breed can guide preferences, but individual behaviour still matters most.",
+    get: (p) => p.preferences.breed,
+    apply: (p, v) => setPref(p, "breed", v),
+    options: [
+      { value: "", label: "No preference", sub: "Keep all breeds in the match pool." },
+      { value: "Retriever", label: "Retriever types", sub: "Golden, Labrador, and similar breeds." },
+      { value: "Poodle", label: "Poodle types", sub: "Poodles and poodle mixes." },
+      { value: "Terrier", label: "Terrier types", sub: "Small-to-medium terrier breeds." },
+      { value: "Spaniel", label: "Spaniel types", sub: "Spaniels and similar companion breeds." },
+      { value: "Mixed", label: "Mixed breeds", sub: "Mixed-breed dogs only if available." },
     ],
   },
 ];
