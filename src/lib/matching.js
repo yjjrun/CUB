@@ -3,7 +3,7 @@
 
 export const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
-export const APP_LOGO = "/assets/cub-logo.png";
+export const APP_LOGO = "/assets/favicon-cub-transparent.png";
 export const PARTNER_ACCESS_CODE = "CUBSHOP";
 
 export const MBTI_QUESTIONS = [
