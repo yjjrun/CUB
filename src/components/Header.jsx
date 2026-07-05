@@ -20,6 +20,7 @@ export default function Header({ route, navigate }) {
         <button className={route === "home" ? "active" : ""} onClick={() => navigate("home")}>Home</button>
         <button className={route === "match" ? "active" : ""} onClick={() => navigate("match")}>For adopters</button>
         <button className={route === "partner" ? "active" : ""} onClick={() => navigate("partner")}>For shelters</button>
+        <button className={route === "faq" ? "active" : ""} onClick={() => navigate("faq")}>FAQ</button>
         <button onClick={() => navigate("home")}>About us</button>
       </nav>
     </header>

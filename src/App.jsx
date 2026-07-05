@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Header from "./components/Header.jsx";
 import Partners from "./components/Partners.jsx";
+import FaqPage from "./pages/FaqPage.jsx";
 import Home from "./pages/Home.jsx";
 import MatchPage from "./pages/MatchPage.jsx";
 import PartnerPage from "./pages/PartnerPage.jsx";
@@ -8,6 +9,7 @@ import PartnerPage from "./pages/PartnerPage.jsx";
 function routeFromPath(pathname) {
   if (pathname === "/match") return "match";
   if (pathname === "/partner" || pathname === "/shelter") return "partner";
+  if (pathname === "/faq" || pathname === "/faqs") return "faq";
   return "home";
 }
 
@@ -21,7 +23,7 @@ export default function App() {
   }, []);
 
   const navigate = (next) => {
-    const path = next === "match" ? "/match" : next === "partner" ? "/partner" : "/";
+    const path = next === "match" ? "/match" : next === "partner" ? "/partner" : next === "faq" ? "/faq" : "/";
     window.history.pushState({}, "", path);
     setRoute(next);
     window.scrollTo(0, 0);
@@ -33,6 +35,7 @@ export default function App() {
       {route === "home" && <Home navigate={navigate} />}
       {route === "match" && <MatchPage navigate={navigate} />}
       {route === "partner" && <PartnerPage navigate={navigate} />}
+      {route === "faq" && <FaqPage />}
       <Partners />
     </>
   );
