@@ -382,12 +382,51 @@ img {
     radial-gradient(circle at 46% 42%, rgba(255, 250, 245, 0.9), rgba(247, 234, 211, 0.68) 62%, rgba(234, 222, 210, 0.22));
 }
 
-.hero-dog-visual img {
+.hero-dog-visual > img {
+  position: relative;
+  z-index: 1;
   width: min(610px, 110%);
   max-width: none;
   height: auto;
   object-fit: contain;
   filter: drop-shadow(0 28px 34px rgba(74, 36, 17, 0.12));
+}
+
+.hero-dog-visual .hero-preview-card {
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.24s ease,
+    transform 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hero-dog-visual .compatibility-card {
+  transform: translateX(54px) translateY(-8px) scale(0.98);
+  transition-delay: 0.04s;
+}
+
+.hero-dog-visual .dog-card {
+  transform: translateX(-56px) translateY(10px) scale(0.98);
+  transition-delay: 0.1s;
+}
+
+.hero-dog-visual .lifestyle-card {
+  transform: translateX(54px) translateY(16px) scale(0.98);
+  transition-delay: 0.16s;
+}
+
+.hero-dog-visual:hover .hero-preview-card,
+.hero-dog-visual:focus-visible .hero-preview-card,
+.hero-dog-visual:focus-within .hero-preview-card {
+  opacity: 1;
+  transform: translateX(0) translateY(0) scale(1);
+}
+
+.hero-dog-visual:focus-visible {
+  outline: 2px solid rgba(74, 36, 17, 0.34);
+  outline-offset: 8px;
+  border-radius: 24px;
 }
 
 .match-preview {
@@ -1492,7 +1531,7 @@ input[type="range"] {
     width: min(680px, 100%);
   }
 
-  .hero-dog-visual img {
+  .hero-dog-visual > img {
     width: min(560px, 100%);
   }
 
@@ -1622,7 +1661,7 @@ input[type="range"] {
     transform: translateX(50%);
   }
 
-  .hero-dog-visual img {
+  .hero-dog-visual > img {
     width: min(360px, 96vw);
   }
 

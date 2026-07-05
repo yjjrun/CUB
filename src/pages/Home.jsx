@@ -49,8 +49,37 @@ export default function Home({ navigate }) {
             <button className="primary-action hero-action" onClick={() => navigate("match")}><img src="/assets/paw-white.png" alt="" aria-hidden="true" />Meet your pet!</button>
           </div>
         </div>
-        <div className="hero-dog-visual" aria-label="Golden retriever hero image">
+        <div className="hero-dog-visual" aria-label="Golden retriever hero image" tabIndex={0}>
           <img src="/assets/hero-golden-dog.png" alt="Happy golden retriever sitting on grass" />
+          <article className="preview-card compatibility-card hero-preview-card" aria-hidden="true">
+            <span>Compatibility</span>
+            <strong>92<i>%</i></strong>
+            <b>Match</b>
+            <p>Great potential for a happy life together.</p>
+            <div className="mini-meter"><span style={{ width: "84%" }} /></div>
+          </article>
+          <article className="preview-card dog-card hero-preview-card" aria-hidden="true">
+            <img src="/assets/hero-golden-dog.png" alt="" />
+            <div>
+              <h3>Sunny <small>2 yrs</small></h3>
+              <p>Golden Retriever Mix</p>
+              <span>Rescue Hub, Singapore</span>
+            </div>
+            <dl>
+              <div><dt>Energy</dt><dd><span style={{ width: "78%" }} /></dd></div>
+              <div><dt>Sociability</dt><dd><span style={{ width: "88%" }} /></dd></div>
+              <div><dt>Trainability</dt><dd><span style={{ width: "72%" }} /></dd></div>
+            </dl>
+          </article>
+          <article className="preview-card lifestyle-card hero-preview-card" aria-hidden="true">
+            <h3>Your lifestyle</h3>
+            <ul>
+              <li>Active · Enjoys walks</li>
+              <li>Experienced adopter</li>
+              <li>Apartment living</li>
+              <li>Prefers calmer evenings</li>
+            </ul>
+          </article>
         </div>
       </section>
 
