@@ -167,6 +167,12 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
 
           <section className="match-breakdown">
             <h3>How {dogName} fits you</h3>
+            <div className="match-explanation" aria-label={`Why ${dogName} may be compatible with you`}>
+              <h4>Why this match makes sense</h4>
+              {matchExplanation(match, profile).map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
             <div className="compare">
               <div className="compare-head"><span>This dog</span><span>vs your answers</span></div>
               {comparisonRows(match, profile).map((r) => (
@@ -190,6 +196,55 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
 
 function scoreTier(score) {
   return score > 70 ? "high" : score < 30 ? "low" : "mid";
+}
+
+function matchExplanation(match, profile) {
+  const { dog, score, subscores, flags } = match;
+  const dogName = dog.name || "this dog";
+  const dogLabel = dog.name || "This dog";
+  const cluster = CLUSTERS[dog.cluster] || CLUSTERS["Golden Hearts"];
+  const exerciseLabel = {
+    low: "calmer daily walks",
+    moderate: "a steady everyday walk routine",
+    moderateHigh: "an active routine with regular enrichment",
+    high: "a very active routine with plenty of exercise",
+  }[dog.exerciseNeed] || "a moderate exercise routine";
+  const experience = {
+    "first-time": "first-time owner",
+    some: "someone with some dog experience",
+    experienced: "confident, experienced handler",
+  }[profile.lifestyle.experience] || "dog owner";
+  const away = Number(profile.lifestyle.hoursAway);
+  const awayText = away <= 3
+    ? "you are usually around during the day"
+    : away <= 8
+      ? "your normal away time is moderate"
+      : "you are away for longer stretches on a typical day";
+  const housingText = subscores.housing >= 70
+    ? `${dogName} appears workable for your ${profile.lifestyle.homeType} setup`
+    : `${dogName} may need a closer housing check for your ${profile.lifestyle.homeType} setup`;
+  const personalityText = subscores.personality >= 75
+    ? "The personality fit is especially strong"
+    : subscores.personality >= 60
+      ? "The personality fit is reasonably aligned"
+      : "The personality fit needs a little more caution";
+  const preferenceText = profile.preferences.size !== "Any"
+    ? `Your stated size preference also points toward ${dog.size || "this size range"}.`
+    : "Because you did not limit the match by size, CUB is prioritising welfare fit over appearance.";
+
+  const paragraphs = [
+    `${dogLabel} scored ${score}% because the main care demands line up with what you told CUB. ${housingText}, and ${exerciseLabel} should fit your stated activity level better than a dog with very different daily needs.`,
+    `${personalityText}: ${dogName} is classified as ${dog.cluster}, which means ${cluster.fit.toLowerCase()} Your results suggest you may be able to offer the mix of routine, empathy, activity, and boundaries this profile usually benefits from.`,
+    `CUB also considered practical details. You described yourself as a ${experience}, ${awayText}, and ${preferenceText} These are the everyday factors that often decide whether an adoption feels manageable after the first few weeks.`,
+  ];
+
+  if (flags.length) {
+    paragraphs.push(`A note of caution: ${flags.join(" ")} This does not rule out the match, but it means you should ask the shelter about management plans, introductions, and support before deciding.`);
+  } else {
+    paragraphs.push(`There are no major mismatch warnings for this pairing, but the final decision should still include shelter advice, a meet-and-greet, and honest reflection on your long-term routine.`);
+  }
+
+  return paragraphs;
 }
 
 function comparisonRows(match, profile) {
