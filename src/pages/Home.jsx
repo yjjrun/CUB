@@ -59,11 +59,11 @@ export default function Home({ navigate }) {
             <div className="mini-meter"><span style={{ width: "84%" }} /></div>
           </article>
           <article className="preview-card dog-card hero-preview-card" aria-hidden="true">
-            <img src="/assets/hero-golden-dog.png" alt="" />
+            <img src="/assets/lily-profile.png" alt="" />
             <div>
-              <h3>Sunny <small>2 yrs</small></h3>
+              <h3>Lily <small>2 yrs</small></h3>
               <p>Golden Retriever Mix</p>
-              <span>Rescue Hub, Singapore</span>
+              <span>Singapore</span>
             </div>
             <dl>
               <div><dt>Energy</dt><dd><span style={{ width: "78%" }} /></dd></div>
