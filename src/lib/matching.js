@@ -1,6 +1,8 @@
 // Matching model, ported unchanged from the original vanilla implementation.
 // Pure functions: they take a profile/dogs and return results (no shared state).
 
+import { breedPersonalityCluster } from "./breeds.js";
+
 export const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 export const APP_LOGO = "/assets/cub-logo.png";
@@ -173,7 +175,12 @@ export function scoreDog(dog, profile) {
   housingScore = clamp(housingScore, 0, 100);
 
   const expScore = experienceScore(profile.lifestyle.experience, dog.cluster);
-  const personalityScore = mbtiCompatibility(mbti, dog.cluster);
+  const behaviorPersonalityScore = mbtiCompatibility(mbti, dog.cluster);
+  const breedCluster = breedPersonalityCluster(dog.breed);
+  const breedPersonalityScore = breedCluster
+    ? mbtiCompatibility(mbti, breedCluster)
+    : behaviorPersonalityScore;
+  const personalityScore = (0.85 * behaviorPersonalityScore) + (0.15 * breedPersonalityScore);
   const preferenceScore = preferenceFit(dog, profile.preferences);
 
   const base = 0.3 * lifestyleScore + 0.25 * housingScore + 0.15 * expScore + 0.3 * personalityScore;

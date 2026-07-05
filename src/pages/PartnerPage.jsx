@@ -3,6 +3,7 @@ import {
   FACTORS, CBARQ_SECTIONS, CBARQ_OPTIONS, DEFAULT_CBARQ_ANSWERS, CBARQ_TOTAL_QUESTIONS,
   BREED_RULES, deriveCbarqFactors, cbarqAnsweredCount,
 } from "../lib/cbarq.js";
+import { AKC_BREEDS } from "../lib/breeds.js";
 import { PARTNER_ACCESS_CODE } from "../lib/matching.js";
 import { loadDogs, submitDog } from "../api.js";
 
@@ -22,8 +23,7 @@ export default function PartnerPage() {
       <main className="screen partner-screen">
         <section className="access-card panel">
           <div>
-            <p className="eyebrow">Private shelter and pet shop portal</p>
-            <h1>Partner access required.</h1>
+            <h1>Answer questions for each dog!</h1>
             <p>Only approved shelters and pet shops should enter dog records into CUB.</p>
           </div>
           <form
@@ -93,15 +93,14 @@ function Intake() {
     <main className="screen partner-screen">
       <section className="intro-strip partner">
         <div>
-          <p className="eyebrow">Private shelter and pet shop portal</p>
-          <h1>Answer shelter questions for each dog.</h1>
+          <h1>Answer questions for each dog!</h1>
         </div>
         <div className="stat-block"><strong>{dogs.length}</strong><span>stored records</span></div>
       </section>
 
       <div className="portal-grid">
         <form className="panel intake-panel" onSubmit={submit}>
-          <div className="panel-head"><p className="eyebrow">Dog profile</p><h2>Intake record</h2></div>
+          <div className="panel-head"><h2>Intake record</h2></div>
           {error && <p className="notice error">{error}</p>}
           {saved && <p className="notice success">{saved}</p>}
           <div className="form-split">
@@ -113,7 +112,7 @@ function Intake() {
                 <span>Breed</span>
                 <input list="breed-options" value={partner.breed} placeholder="Required" onChange={(e) => setBreed(e.target.value)} />
                 <datalist id="breed-options">
-                  {Object.keys(BREED_RULES).map((b) => <option key={b} value={b} />)}
+                  {AKC_BREEDS.map((b) => <option key={b} value={b} />)}
                 </datalist>
               </label>
               <Field label="Age in years" type="number" value={partner.ageYears} onChange={(v) => setField("ageYears", v)} />
@@ -172,7 +171,7 @@ function Intake() {
         </form>
 
         <aside className="panel database-panel">
-          <div className="panel-head"><p className="eyebrow">Database</p><h2>Stored dog records</h2></div>
+          <div className="panel-head"><h2>Stored dog records</h2></div>
           {dogs.length === 0 ? (
             <p className="helper-copy">The database is empty. Saved dogs will appear here.</p>
           ) : (
