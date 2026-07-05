@@ -17,7 +17,7 @@ export default function Header({ route, navigate }) {
         <span className="brand-subtitle">Canine<br />Understanding<br />Buddy</span>
       </a>
       <nav className="nav-pills" aria-label="Site areas">
-        <button className={route === "home" ? "active" : ""} onClick={() => navigate("home")}>How it works</button>
+        <button className={route === "home" ? "active" : ""} onClick={() => navigate("home")}>Home</button>
         <button className={route === "match" ? "active" : ""} onClick={() => navigate("match")}>For adopters</button>
         <button className={route === "partner" ? "active" : ""} onClick={() => navigate("partner")}>For shelters</button>
         <button onClick={() => navigate("home")}>About us</button>

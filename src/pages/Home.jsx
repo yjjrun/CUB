@@ -15,6 +15,33 @@ const TRAIT_CHIPS = [
   { label: "Sensitivity", mark: "Sn" },
 ];
 
+const FAQ_ITEMS = [
+  {
+    question: "Is CUB only for Singapore?",
+    answer: "CUB is currently built around Singapore adoption needs, including HDB considerations, but the matching approach can support shelters and adopters in other locations.",
+  },
+  {
+    question: "How does the matching algorithm work?",
+    answer: "CUB compares adopter lifestyle, home environment, dog experience, and preferences with each dog’s behaviour profile, breed-informed care needs, and shelter-provided intake answers.",
+  },
+  {
+    question: "Can shelters use CUB?",
+    answer: "Yes. Shelters and pet shops can use the partner intake to answer behaviour questions for each dog and add profiles to the matching database.",
+  },
+  {
+    question: "Is CUB free for adopters?",
+    answer: "Yes. Adopters can answer the matching questions and view suggested dogs without paying.",
+  },
+  {
+    question: "Does CUB replace shelter staff judgement?",
+    answer: "No. CUB is a decision-support tool. Shelter staff judgement, meet-and-greets, medical context, and adoption counselling should still guide final placements.",
+  },
+  {
+    question: "Can I use CUB if I already own pets?",
+    answer: "Yes. CUB can still help you understand which dogs may fit your routine and experience, but introductions with existing pets should be managed carefully with shelter guidance.",
+  },
+];
+
 export default function Home({ navigate }) {
   return (
     <main className="screen home-screen">
@@ -54,6 +81,17 @@ export default function Home({ navigate }) {
         </div>
       </section>
 
+      <section className="mission-section">
+        <div className="section-title">
+          <p className="eyebrow">Our Mission</p>
+        </div>
+        <p>
+          Too many adoptions begin with love but fail because of mismatched expectations. CUB helps
+          adopters understand a dog’s personality before adoption, so every match has a better chance
+          of becoming permanent.
+        </p>
+      </section>
+
       <section className="collab-section">
         <div className="section-title">
           <p className="eyebrow">Pet resources</p>
@@ -69,6 +107,20 @@ export default function Home({ navigate }) {
                 <span>{link.host} &rarr;</span>
               </div>
             </a>
+          ))}
+        </div>
+      </section>
+
+      <section className="faq-section">
+        <div className="section-title">
+          <p className="eyebrow">FAQ</p>
+        </div>
+        <div className="faq-grid">
+          {FAQ_ITEMS.map((item) => (
+            <details className="faq-item" key={item.question}>
+              <summary>{item.question}</summary>
+              <p>{item.answer}</p>
+            </details>
           ))}
         </div>
       </section>
