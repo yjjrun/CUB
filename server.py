@@ -143,6 +143,34 @@ CLUSTER_CENTROIDS = {
     },
 }
 
+HOME_FIT_OPTIONS = ["HDB flat", "condominium", "landed house"]
+EXERCISE_FIT_OPTIONS = ["low", "moderate", "moderateHigh", "high"]
+HDB_SUITABLE_BREEDS = {
+    "Affenpinscher", "Australian Terrier", "Bichon Frise", "Bolognese", "Boston Terrier",
+    "Brussels Griffon", "Cairn Terrier", "Cavalier King Charles Spaniel", "Chihuahua",
+    "Chinese Crested", "Coton de Tulear", "Dachshund", "Dandie Dinmont Terrier",
+    "English Toy Spaniel", "French Bulldog", "Havanese", "Italian Greyhound",
+    "Japanese Chin", "Japanese Spitz", "Lhasa Apso", "Lowchen", "Maltese",
+    "Manchester Terrier (Toy)", "Miniature Pinscher", "Miniature Schnauzer",
+    "Norfolk Terrier", "Norwich Terrier", "Papillon", "Pekingese", "Pomeranian",
+    "Poodle (Miniature)", "Poodle (Toy)", "Pug", "Russian Toy", "Schipperke",
+    "Scottish Terrier", "Sealyham Terrier", "Shih Tzu", "Silky Terrier", "Skye Terrier",
+    "Tibetan Spaniel", "Toy Fox Terrier", "West Highland White Terrier", "Yorkshire Terrier",
+}
+HIGH_EXERCISE_TERMS = [
+    "Cattle Dog", "Collie", "Husky", "Kelpie", "Malinois", "Pointer", "Retriever",
+    "Setter", "Shepherd", "Spaniel", "Tervuren", "Vizsla", "Weimaraner", "Working",
+]
+MODERATE_HIGH_EXERCISE_TERMS = [
+    "Beagle", "Coonhound", "Dalmatian", "Elkhound", "Foxhound", "Hound", "Malamute",
+    "Mountain", "Ridgeback", "Samoyed", "Schnauzer", "Terrier", "Water Dog",
+]
+LOW_EXERCISE_TERMS = [
+    "Basset", "Bichon", "Bulldog", "Cavalier", "Chihuahua", "Chin", "Coton",
+    "French Bulldog", "Lhasa", "Maltese", "Mastiff", "Pekingese", "Pomeranian",
+    "Pug", "Shih Tzu", "Toy", "Yorkshire",
+]
+
 
 def init_db() -> None:
     DATA_DIR.mkdir(exist_ok=True)
@@ -158,13 +186,16 @@ def init_db() -> None:
                 contact_url TEXT NOT NULL,
                 breed TEXT NOT NULL,
                 age_years REAL,
+                age_months INTEGER,
                 sex TEXT,
                 size TEXT,
                 color TEXT,
                 image_url TEXT,
                 hdb_approved INTEGER NOT NULL DEFAULT 0,
                 home_fit TEXT,
+                home_fits TEXT NOT NULL DEFAULT '[]',
                 exercise_need TEXT,
+                exercise_needs TEXT NOT NULL DEFAULT '[]',
                 cluster TEXT NOT NULL,
                 cbarq_factors TEXT NOT NULL,
                 cbarq_answers TEXT NOT NULL DEFAULT '{}',
@@ -173,8 +204,14 @@ def init_db() -> None:
             """
         )
         columns = {row[1] for row in con.execute("PRAGMA table_info(dogs)").fetchall()}
+        if "age_months" not in columns:
+            con.execute("ALTER TABLE dogs ADD COLUMN age_months INTEGER")
         if "cbarq_answers" not in columns:
             con.execute("ALTER TABLE dogs ADD COLUMN cbarq_answers TEXT NOT NULL DEFAULT '{}'")
+        if "home_fits" not in columns:
+            con.execute("ALTER TABLE dogs ADD COLUMN home_fits TEXT NOT NULL DEFAULT '[]'")
+        if "exercise_needs" not in columns:
+            con.execute("ALTER TABLE dogs ADD COLUMN exercise_needs TEXT NOT NULL DEFAULT '[]'")
         con.commit()
 
 
@@ -203,14 +240,70 @@ def classify_cluster(factors: dict[str, float]) -> str:
     return best_name
 
 
+def includes_any(label: str, terms: list[str]) -> bool:
+    lowered = label.lower()
+    return any(term.lower() in lowered for term in terms)
+
+
+def expand_home_fits(base_fit: str) -> list[str]:
+    if base_fit == "HDB flat":
+        return ["HDB flat", "condominium", "landed house"]
+    if base_fit == "condominium":
+        return ["condominium", "landed house"]
+    return ["landed house"]
+
+
+def exercise_fit_options(minimum_need: str) -> list[str]:
+    try:
+        start = EXERCISE_FIT_OPTIONS.index(minimum_need)
+    except ValueError:
+        start = 1
+    return EXERCISE_FIT_OPTIONS[start:]
+
+
+def derive_dog_care_profile(breed: str, size: str) -> dict:
+    label = str(breed or "").strip()
+    size_label = str(size or "").strip().lower()
+    hdb_approved = label in HDB_SUITABLE_BREEDS or (
+        size_label == "small" and not includes_any(label, HIGH_EXERCISE_TERMS)
+    )
+
+    home_fit = "landed house"
+    if hdb_approved:
+        home_fit = "HDB flat"
+    elif size_label != "large" and not includes_any(label, ["Mastiff", "Great Dane", "Saint Bernard", "Newfoundland"]):
+        home_fit = "condominium"
+
+    exercise_need = "moderate"
+    if includes_any(label, HIGH_EXERCISE_TERMS):
+        exercise_need = "high"
+    elif includes_any(label, MODERATE_HIGH_EXERCISE_TERMS):
+        exercise_need = "moderateHigh"
+    elif includes_any(label, LOW_EXERCISE_TERMS) or size_label == "small":
+        exercise_need = "low"
+
+    return {
+        "hdb_approved": hdb_approved,
+        "home_fit": home_fit,
+        "home_fits": expand_home_fits(home_fit),
+        "exercise_need": exercise_need,
+        "exercise_needs": exercise_fit_options(exercise_need),
+    }
+
+
 def row_to_dog(row: sqlite3.Row) -> dict:
     dog = dict(row)
     dog["hdbApproved"] = bool(dog.pop("hdb_approved"))
     dog["contactUrl"] = dog.pop("contact_url")
-    dog["ageYears"] = dog.pop("age_years")
+    age_years = dog.pop("age_years", None)
+    age_months = dog.pop("age_months", None)
+    dog["ageMonths"] = age_months if age_months is not None else (round(age_years * 12) if age_years else None)
+    dog["ageYears"] = age_years
     dog["imageUrl"] = dog.pop("image_url")
     dog["homeFit"] = dog.pop("home_fit")
+    dog["homeFits"] = json.loads(dog.pop("home_fits") or "[]") or expand_home_fits(dog["homeFit"])
     dog["exerciseNeed"] = dog.pop("exercise_need")
+    dog["exerciseNeeds"] = json.loads(dog.pop("exercise_needs") or "[]") or exercise_fit_options(dog["exerciseNeed"])
     dog["createdAt"] = dog.pop("created_at")
     dog["cbarqFactors"] = json.loads(dog.pop("cbarq_factors"))
     dog["cbarqAnswers"] = json.loads(dog.pop("cbarq_answers") or "{}")
@@ -227,6 +320,9 @@ def list_dogs() -> list[dict]:
 def insert_dog(payload: dict) -> dict:
     factors = normalise_factors(payload.get("cbarqFactors") or {})
     cluster = classify_cluster(factors)
+    breed = str(payload.get("breed") or "").strip()
+    size = str(payload.get("size") or "").strip()
+    care_profile = derive_dog_care_profile(breed, size)
     dog_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
 
@@ -237,21 +333,24 @@ def insert_dog(payload: dict) -> dict:
         "name": str(payload.get("name") or "").strip(),
         "shelter": str(payload.get("shelter") or "").strip(),
         "contact_url": str(payload.get("contactUrl") or "").strip(),
-        "breed": str(payload.get("breed") or "").strip(),
+        "breed": breed,
         "age_years": payload.get("ageYears") or None,
+        "age_months": payload.get("ageMonths") or None,
         "sex": str(payload.get("sex") or "").strip(),
-        "size": str(payload.get("size") or "").strip(),
+        "size": size,
         "color": str(payload.get("color") or "").strip(),
         "image_url": str(payload.get("imageUrl") or "").strip(),
-        "hdb_approved": 1 if payload.get("hdbApproved") else 0,
-        "home_fit": str(payload.get("homeFit") or "").strip(),
-        "exercise_need": str(payload.get("exerciseNeed") or "").strip(),
+        "hdb_approved": 1 if care_profile["hdb_approved"] else 0,
+        "home_fit": care_profile["home_fit"],
+        "home_fits": json.dumps(care_profile["home_fits"]),
+        "exercise_need": care_profile["exercise_need"],
+        "exercise_needs": json.dumps(care_profile["exercise_needs"]),
         "cluster": cluster,
         "cbarq_factors": json.dumps(factors, sort_keys=True),
         "cbarq_answers": json.dumps(payload.get("cbarqAnswers") or {}, sort_keys=True),
         "notes": str(payload.get("notes") or "").strip(),
     }
-    required = ["name", "shelter", "contact_url", "breed"]
+    required = ["shelter", "contact_url", "breed"]
     missing = [field for field in required if not fields[field]]
     if missing:
         raise ValueError("Missing required fields: " + ", ".join(missing))
@@ -261,13 +360,15 @@ def insert_dog(payload: dict) -> dict:
             """
             INSERT INTO dogs (
                 id, created_at, status, name, shelter, contact_url, breed, age_years,
-                sex, size, color, image_url, hdb_approved, home_fit, exercise_need,
-                cluster, cbarq_factors, cbarq_answers, notes
+                age_months, sex, size, color, image_url, hdb_approved, home_fit,
+                home_fits, exercise_need, exercise_needs, cluster, cbarq_factors,
+                cbarq_answers, notes
             )
             VALUES (
                 :id, :created_at, :status, :name, :shelter, :contact_url, :breed,
-                :age_years, :sex, :size, :color, :image_url, :hdb_approved, :home_fit,
-                :exercise_need, :cluster, :cbarq_factors, :cbarq_answers, :notes
+                :age_years, :age_months, :sex, :size, :color, :image_url,
+                :hdb_approved, :home_fit, :home_fits, :exercise_need, :exercise_needs,
+                :cluster, :cbarq_factors, :cbarq_answers, :notes
             )
             """,
             fields,

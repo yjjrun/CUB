@@ -291,6 +291,70 @@ export const AKC_BREEDS = [
   "Yorkshire Terrier",
 ];
 
+export const HOME_FIT_OPTIONS = ["HDB flat", "condominium", "landed house"];
+export const EXERCISE_FIT_OPTIONS = ["low", "moderate", "moderateHigh", "high"];
+
+const HDB_SUITABLE_BREEDS = new Set([
+  "Affenpinscher",
+  "Australian Terrier",
+  "Bichon Frise",
+  "Bolognese",
+  "Boston Terrier",
+  "Brussels Griffon",
+  "Cairn Terrier",
+  "Cavalier King Charles Spaniel",
+  "Chihuahua",
+  "Chinese Crested",
+  "Coton de Tulear",
+  "Dachshund",
+  "Dandie Dinmont Terrier",
+  "English Toy Spaniel",
+  "French Bulldog",
+  "Havanese",
+  "Italian Greyhound",
+  "Japanese Chin",
+  "Japanese Spitz",
+  "Lhasa Apso",
+  "Lowchen",
+  "Maltese",
+  "Manchester Terrier (Toy)",
+  "Miniature Pinscher",
+  "Miniature Schnauzer",
+  "Norfolk Terrier",
+  "Norwich Terrier",
+  "Papillon",
+  "Pekingese",
+  "Pomeranian",
+  "Poodle (Miniature)",
+  "Poodle (Toy)",
+  "Pug",
+  "Russian Toy",
+  "Schipperke",
+  "Scottish Terrier",
+  "Sealyham Terrier",
+  "Shih Tzu",
+  "Silky Terrier",
+  "Skye Terrier",
+  "Tibetan Spaniel",
+  "Toy Fox Terrier",
+  "West Highland White Terrier",
+  "Yorkshire Terrier",
+]);
+
+const HIGH_EXERCISE_TERMS = [
+  "Cattle Dog", "Collie", "Husky", "Kelpie", "Malinois", "Pointer", "Retriever",
+  "Setter", "Shepherd", "Spaniel", "Tervuren", "Vizsla", "Weimaraner", "Working",
+];
+const MODERATE_HIGH_EXERCISE_TERMS = [
+  "Beagle", "Coonhound", "Dalmatian", "Elkhound", "Foxhound", "Hound", "Malamute",
+  "Mountain", "Ridgeback", "Samoyed", "Schnauzer", "Terrier", "Water Dog",
+];
+const LOW_EXERCISE_TERMS = [
+  "Basset", "Bichon", "Bulldog", "Cavalier", "Chihuahua", "Chin", "Coton",
+  "French Bulldog", "Lhasa", "Maltese", "Mastiff", "Pekingese", "Pomeranian",
+  "Pug", "Shih Tzu", "Toy", "Yorkshire",
+];
+
 const TENDENCY_RULES = [
   {
     cluster: "Fiery Dynamos",
@@ -339,11 +403,59 @@ function normaliseBreed(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function labelForBreed(breed) {
+  const normalised = normaliseBreed(breed);
+  if (!normalised) return "";
+  return AKC_BREEDS.find((name) => normaliseBreed(name) === normalised) || String(breed);
+}
+
+function includesAny(label, terms) {
+  const lowered = label.toLowerCase();
+  return terms.some((term) => lowered.includes(term.toLowerCase()));
+}
+
+export function expandHomeFits(baseFit) {
+  if (baseFit === "HDB flat") return ["HDB flat", "condominium", "landed house"];
+  if (baseFit === "condominium") return ["condominium", "landed house"];
+  return ["landed house"];
+}
+
+export function exerciseFitOptions(minimumNeed) {
+  const start = Math.max(0, EXERCISE_FIT_OPTIONS.indexOf(minimumNeed));
+  return EXERCISE_FIT_OPTIONS.slice(start);
+}
+
+export function deriveDogCareProfile({ breed, size } = {}) {
+  const label = labelForBreed(breed);
+  const sizeLabel = String(size || "").toLowerCase();
+  const hdbApproved = HDB_SUITABLE_BREEDS.has(label) || (
+    sizeLabel === "small" && !includesAny(label, HIGH_EXERCISE_TERMS)
+  );
+
+  let homeFit = "landed house";
+  if (hdbApproved) homeFit = "HDB flat";
+  else if (sizeLabel !== "large" && !includesAny(label, ["Mastiff", "Great Dane", "Saint Bernard", "Newfoundland"])) {
+    homeFit = "condominium";
+  }
+
+  let exerciseNeed = "moderate";
+  if (includesAny(label, HIGH_EXERCISE_TERMS)) exerciseNeed = "high";
+  else if (includesAny(label, MODERATE_HIGH_EXERCISE_TERMS)) exerciseNeed = "moderateHigh";
+  else if (includesAny(label, LOW_EXERCISE_TERMS) || sizeLabel === "small") exerciseNeed = "low";
+
+  return {
+    hdbApproved,
+    homeFit,
+    homeFits: expandHomeFits(homeFit),
+    exerciseNeed,
+    exerciseNeeds: exerciseFitOptions(exerciseNeed),
+  };
+}
+
 export function breedPersonalityCluster(breed) {
   const normalised = normaliseBreed(breed);
   if (!normalised) return null;
-  const exactBreed = AKC_BREEDS.find((name) => normaliseBreed(name) === normalised);
-  const label = exactBreed || breed;
+  const label = labelForBreed(breed);
   const rule = TENDENCY_RULES.find(({ matches }) => (
     matches.some((term) => label.toLowerCase().includes(term.toLowerCase()))
   ));

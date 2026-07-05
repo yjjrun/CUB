@@ -117,6 +117,7 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
   const idx = Math.max(0, Math.min(selected, top.length - 1));
   const match = top[idx];
   const { dog } = match;
+  const dogName = dog.name || "This dog";
   const cluster = CLUSTERS[dog.cluster] || CLUSTERS["Golden Hearts"];
 
   return (
@@ -141,7 +142,7 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
               className={`avatar ${i === idx ? "is-active" : ""}`}
               onClick={() => setSelected(i)}
             >
-              <span className="avatar-img"><img src={m.dog.imageUrl || APP_LOGO} alt={m.dog.name} /></span>
+              <span className="avatar-img"><img src={m.dog.imageUrl || APP_LOGO} alt={m.dog.name || "Dog"} /></span>
               <span className="avatar-label">Top {i + 1}</span>
               <span className={`avatar-score tier-${scoreTier(m.score)}`}>{m.score}%</span>
             </button>
@@ -153,19 +154,19 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
             <div className="match-detail-head">
               <div className={`score-ring tier-${scoreTier(match.score)}`}><b>{match.score}<i>%</i></b><span>match</span></div>
               <div className="match-detail-copy">
-                <h2>{dog.name}</h2>
+                <h2>{dogName}</h2>
                 <p className="match-breed">{dog.breed} · {dog.size || "Size n/a"}{dog.color ? ` · ${dog.color}` : ""}</p>
                 <p className="match-traits">{clusterTraits(dog.cluster).join(" · ")}</p>
               </div>
-              <a className="primary-action meet-btn" href={dog.contactUrl} target="_blank" rel="noreferrer noopener">Meet {dog.name}</a>
+              <a className="primary-action meet-btn" href={dog.contactUrl} target="_blank" rel="noreferrer noopener">Meet {dogName}</a>
             </div>
-            <div className="match-photo"><img src={dog.imageUrl || APP_LOGO} alt={dog.name} /></div>
+            <div className="match-photo"><img src={dog.imageUrl || APP_LOGO} alt={dogName} /></div>
             <div className="cluster-pill">{dog.cluster}</div>
             <p className="cluster-headline">{cluster.headline}</p>
           </section>
 
           <section className="match-breakdown">
-            <h3>How {dog.name} fits you</h3>
+            <h3>How {dogName} fits you</h3>
             <div className="compare">
               <div className="compare-head"><span>This dog</span><span>vs your answers</span></div>
               {comparisonRows(match, profile).map((r) => (

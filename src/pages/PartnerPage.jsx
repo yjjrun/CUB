@@ -1,16 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FACTORS, CBARQ_SECTIONS, CBARQ_OPTIONS, DEFAULT_CBARQ_ANSWERS, CBARQ_TOTAL_QUESTIONS,
-  BREED_RULES, deriveCbarqFactors, cbarqAnsweredCount,
+  deriveCbarqFactors, cbarqAnsweredCount,
 } from "../lib/cbarq.js";
-import { AKC_BREEDS } from "../lib/breeds.js";
+import { AKC_BREEDS, deriveDogCareProfile } from "../lib/breeds.js";
 import { PARTNER_ACCESS_CODE } from "../lib/matching.js";
 import { loadDogs, submitDog } from "../api.js";
 
 const EMPTY_PARTNER = {
-  name: "", shelter: "", contactUrl: "", breed: "", ageYears: "", sex: "Female",
-  size: "Small", color: "", imageUrl: "", hdbApproved: false, homeFit: "HDB flat",
-  exerciseNeed: "moderate", notes: "",
+  name: "", shelter: "", contactUrl: "", breed: "", ageMonths: "", sex: "Female",
+  size: "Small", color: "", imageUrl: "", notes: "",
 };
 
 export default function PartnerPage() {
@@ -58,13 +57,15 @@ function Intake() {
   useEffect(() => { loadDogs().then(setDogs).catch(() => setDogs([])); }, []);
 
   const setField = (key, value) => setPartner((p) => ({ ...p, [key]: value }));
-  const setBreed = (value) => {
-    setPartner((p) => {
-      const next = { ...p, breed: value };
-      const rule = BREED_RULES[value];
-      if (rule) { next.hdbApproved = rule.hdb; next.exerciseNeed = rule.exercise; }
-      return next;
-    });
+  const careProfile = useMemo(
+    () => deriveDogCareProfile({ breed: partner.breed, size: partner.size }),
+    [partner.breed, partner.size],
+  );
+  const setPhoto = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setField("imageUrl", String(reader.result || ""));
+    reader.readAsDataURL(file);
   };
 
   const factors = deriveCbarqFactors(cbarq);
@@ -76,11 +77,12 @@ function Intake() {
     try {
       const payload = await submitDog({
         ...partner,
-        ageYears: partner.ageYears ? Number(partner.ageYears) : null,
+        ageMonths: partner.ageMonths ? Number(partner.ageMonths) : null,
+        ...careProfile,
         cbarqFactors: factors,
         cbarqAnswers: cbarq,
       });
-      setSaved(`${partner.name} was saved as ${payload.cluster}.`);
+      setSaved(`${partner.name || "This dog"} was saved as ${payload.cluster}.`);
       setPartner(EMPTY_PARTNER);
       setCbarq(DEFAULT_CBARQ_ANSWERS);
       loadDogs().then(setDogs).catch(() => {});
@@ -105,29 +107,38 @@ function Intake() {
           {saved && <p className="notice success">{saved}</p>}
           <div className="form-split">
             <div>
-              <Field label="Dog name" value={partner.name} onChange={(v) => setField("name", v)} placeholder="Required" />
+              <Field label="Dog name" value={partner.name} onChange={(v) => setField("name", v)} placeholder="Optional" />
               <Field label="Shelter or pet shop" value={partner.shelter} onChange={(v) => setField("shelter", v)} placeholder="Required" />
               <Field label="Website to meet this pet" value={partner.contactUrl} onChange={(v) => setField("contactUrl", v)} placeholder="https://..." />
               <label className="field">
                 <span>Breed</span>
-                <input list="breed-options" value={partner.breed} placeholder="Required" onChange={(e) => setBreed(e.target.value)} />
+                <input list="breed-options" value={partner.breed} placeholder="Required" onChange={(e) => setField("breed", e.target.value)} />
                 <datalist id="breed-options">
                   {AKC_BREEDS.map((b) => <option key={b} value={b} />)}
                 </datalist>
               </label>
-              <Field label="Age in years" type="number" value={partner.ageYears} onChange={(v) => setField("ageYears", v)} />
+              <Field label="Age in months" type="number" value={partner.ageMonths} onChange={(v) => setField("ageMonths", v)} />
               <Select label="Sex" value={partner.sex} onChange={(v) => setField("sex", v)} options={["Female", "Male", "Unknown"]} />
             </div>
             <div>
               <Select label="Size" value={partner.size} onChange={(v) => setField("size", v)} options={["Small", "Medium", "Large"]} />
               <Field label="Color" value={partner.color} onChange={(v) => setField("color", v)} placeholder="e.g. brown and white" />
-              <Field label="Photo URL" value={partner.imageUrl} onChange={(v) => setField("imageUrl", v)} placeholder="Optional" />
-              <Select label="Best home fit" value={partner.homeFit} onChange={(v) => setField("homeFit", v)} options={["HDB flat", "condominium", "landed house", "single-dog home"]} />
-              <Select label="Exercise need" value={partner.exerciseNeed} onChange={(v) => setField("exerciseNeed", v)} options={["low", "moderate", "moderateHigh", "high"]} />
-              <label className="check-row">
-                <input type="checkbox" checked={partner.hdbApproved} onChange={(e) => setField("hdbApproved", e.target.checked)} />
-                <span>HDB approved</span>
+              <label className="field">
+                <span>Photo</span>
+                <input type="file" accept="image/*" onChange={(e) => setPhoto(e.target.files?.[0])} />
               </label>
+              <div className="derived-care">
+                <span>Home fit</span>
+                <div>{careProfile.homeFits.map((fit) => <b key={fit}>{fit}</b>)}</div>
+              </div>
+              <div className="derived-care">
+                <span>Exercise fit</span>
+                <div>{careProfile.exerciseNeeds.map((need) => <b key={need}>{exerciseLabel(need)}</b>)}</div>
+              </div>
+              <div className="derived-care">
+                <span>HDB status</span>
+                <div><b>{careProfile.hdbApproved ? "HDB approved" : "Not HDB approved"}</b></div>
+              </div>
             </div>
           </div>
 
@@ -177,7 +188,7 @@ function Intake() {
           ) : (
             <ul className="database-list">
               {dogs.map((d) => (
-                <li key={d.id}><b>{d.name}</b><span>{d.breed} · {d.cluster}</span></li>
+                <li key={d.id}><b>{d.name || "Unnamed dog"}</b><span>{d.breed} · {d.cluster}</span></li>
               ))}
             </ul>
           )}
@@ -185,6 +196,15 @@ function Intake() {
       </div>
     </main>
   );
+}
+
+function exerciseLabel(value) {
+  return {
+    low: "Low",
+    moderate: "Moderate",
+    moderateHigh: "Moderate-high",
+    high: "High",
+  }[value] || value;
 }
 
 function Field({ label, value, onChange, placeholder = "", type = "text" }) {

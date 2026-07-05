@@ -140,7 +140,29 @@ function mbtiCompatibility(mbti, clusterName) {
   return Math.round(clamp(100 - 10 * weightedDistance, 0, 100));
 }
 
+const EXERCISE_TIERS = ["low", "moderate", "moderateHigh", "high"];
 const targetMinutes = (need) => ({ low: 30, moderate: 70, moderateHigh: 85, high: 110 }[need] || 70);
+const ownerExerciseTier = (minutes) => {
+  const value = Number(minutes);
+  if (value >= 105) return "high";
+  if (value >= 80) return "moderateHigh";
+  if (value >= 45) return "moderate";
+  return "low";
+};
+
+function normaliseHomeFits(dog) {
+  if (Array.isArray(dog.homeFits) && dog.homeFits.length) return dog.homeFits;
+  if (dog.homeFit === "HDB flat") return ["HDB flat", "condominium", "landed house"];
+  if (dog.homeFit === "condominium") return ["condominium", "landed house"];
+  if (dog.homeFit === "landed house") return ["landed house"];
+  return dog.hdbApproved ? ["HDB flat", "condominium", "landed house"] : ["condominium", "landed house"];
+}
+
+function normaliseExerciseFits(dog) {
+  if (Array.isArray(dog.exerciseNeeds) && dog.exerciseNeeds.length) return dog.exerciseNeeds;
+  const start = Math.max(0, EXERCISE_TIERS.indexOf(dog.exerciseNeed || "moderate"));
+  return EXERCISE_TIERS.slice(start);
+}
 
 function experienceScore(experience, clusterName) {
   const level = { "first-time": 45, some: 70, experienced: 92 }[experience] || 55;
@@ -159,8 +181,12 @@ function preferenceFit(dog, preferences) {
 
 export function scoreDog(dog, profile) {
   const mbti = computeMbti(profile);
+  const exerciseFits = normaliseExerciseFits(dog);
+  const ownerTier = ownerExerciseTier(profile.lifestyle.exerciseMinutes);
   const exerciseGap = Math.abs(Number(profile.lifestyle.exerciseMinutes) - targetMinutes(dog.exerciseNeed));
-  const exerciseScore = clamp(100 - exerciseGap * 1.2, 0, 100);
+  const exerciseScore = exerciseFits.includes(ownerTier)
+    ? 100
+    : clamp(100 - exerciseGap * 1.2, 0, 100);
   const away = Number(profile.lifestyle.hoursAway);
   const separationRisk = ["Joyful Sparks", "Fiery Dynamos"].includes(dog.cluster);
   const aloneScore = separationRisk
@@ -168,8 +194,9 @@ export function scoreDog(dog, profile) {
     : clamp(100 - Math.max(0, away - 8) * 10, 45, 100);
   const lifestyleScore = Math.round(exerciseScore * 0.62 + aloneScore * 0.38);
 
-  let housingScore = 86;
-  if (profile.lifestyle.homeType === "HDB flat" && !dog.hdbApproved) housingScore = 35;
+  const homeFits = normaliseHomeFits(dog);
+  let housingScore = homeFits.includes(profile.lifestyle.homeType) ? 92 : 55;
+  if (profile.lifestyle.homeType === "HDB flat" && !homeFits.includes("HDB flat")) housingScore = 35;
   if (profile.lifestyle.homeType === "landed house") housingScore = 96;
   if (dog.size === "Large" && profile.lifestyle.homeType === "HDB flat") housingScore -= 20;
   housingScore = clamp(housingScore, 0, 100);
@@ -195,7 +222,7 @@ export function scoreDog(dog, profile) {
     finalScore = Math.min(finalScore, 70);
     flags.push("High alone-time risk for a social dog.");
   }
-  if (profile.lifestyle.homeType === "HDB flat" && !dog.hdbApproved) {
+  if (profile.lifestyle.homeType === "HDB flat" && !homeFits.includes("HDB flat")) {
     finalScore = Math.min(finalScore, 55);
     flags.push("Housing check needed for HDB suitability.");
   }

@@ -917,6 +917,41 @@ input[type="range"] {
   background: #fffdf9;
 }
 
+.derived-care {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf9;
+}
+
+.derived-care > span {
+  color: var(--coffee);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.derived-care div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.derived-care b {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 1px solid rgba(91, 124, 86, 0.22);
+  border-radius: 999px;
+  background: rgba(91, 124, 86, 0.1);
+  color: var(--coffee);
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
 .primary-action {
   width: 100%;
   min-height: 54px;
