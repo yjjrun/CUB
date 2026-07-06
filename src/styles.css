@@ -149,6 +149,45 @@ img {
   color: var(--cocoa);
 }
 
+.nav-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-submenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 10;
+  display: grid;
+  min-width: 150px;
+  padding: 10px;
+  border: 1px solid rgba(218, 200, 184, 0.8);
+  border-radius: 8px;
+  background: rgba(255, 250, 245, 0.96);
+  box-shadow: 0 16px 34px rgba(74, 36, 17, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.nav-menu:hover .nav-submenu,
+.nav-menu:focus-within .nav-submenu {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.nav-submenu button {
+  justify-content: start;
+  min-height: 36px;
+  padding: 0 8px;
+  text-align: left;
+  white-space: nowrap;
+}
+
 .screen {
   position: relative;
   width: min(1440px, 100%);
@@ -845,6 +884,39 @@ img {
 }
 
 .faq-row p {
+  margin: 0;
+  color: var(--mocha);
+  font-size: 0.98rem;
+  line-height: 1.65;
+}
+
+.team-page {
+  max-width: 980px;
+  display: grid;
+  gap: 38px;
+}
+
+.team-section {
+  display: grid;
+  border-top: 1px solid rgba(74, 36, 17, 0.16);
+}
+
+.team-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr);
+  gap: 28px;
+  padding: 22px 0;
+  border-bottom: 1px solid rgba(74, 36, 17, 0.16);
+}
+
+.team-row h2 {
+  margin: 0;
+  color: var(--coffee);
+  font-size: 1.1rem;
+  line-height: 1.35;
+}
+
+.team-row p {
   margin: 0;
   color: var(--mocha);
   font-size: 0.98rem;
@@ -1620,6 +1692,35 @@ input[type="range"] {
     white-space: nowrap;
   }
 
+  .nav-menu {
+    flex: 1 1 100%;
+    display: grid;
+    gap: 6px;
+  }
+
+  .nav-submenu {
+    position: static;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  .nav-submenu button {
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 4px;
+    text-align: center;
+  }
+
   .screen {
     padding: 18px 14px 32px;
   }
@@ -1698,6 +1799,12 @@ input[type="range"] {
   }
 
   .faq-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 18px 0;
+  }
+
+  .team-row {
     grid-template-columns: 1fr;
     gap: 8px;
     padding: 18px 0;

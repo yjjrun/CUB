@@ -1,6 +1,8 @@
 import { APP_LOGO } from "../lib/matching.js";
 
 export default function Header({ route, navigate }) {
+  const aboutActive = route === "faq" || route === "team";
+
   return (
     <header className="topbar">
       <a
@@ -20,8 +22,13 @@ export default function Header({ route, navigate }) {
         <button className={route === "home" ? "active" : ""} onClick={() => navigate("home")}>Home</button>
         <button className={route === "match" ? "active" : ""} onClick={() => navigate("match")}>For adopters</button>
         <button className={route === "partner" ? "active" : ""} onClick={() => navigate("partner")}>For shelters</button>
-        <button className={route === "faq" ? "active" : ""} onClick={() => navigate("faq")}>FAQ</button>
-        <button onClick={() => navigate("home")}>About us</button>
+        <div className="nav-menu">
+          <button className={aboutActive ? "active" : ""} type="button">About us</button>
+          <div className="nav-submenu" aria-label="About us sections">
+            <button className={route === "faq" ? "active" : ""} onClick={() => navigate("faq")}>FAQs</button>
+            <button className={route === "team" ? "active" : ""} onClick={() => navigate("team")}>Our Team</button>
+          </div>
+        </div>
       </nav>
     </header>
   );

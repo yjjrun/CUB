@@ -5,6 +5,7 @@ import FaqPage from "./pages/FaqPage.jsx";
 import Home from "./pages/Home.jsx";
 import MatchPage from "./pages/MatchPage.jsx";
 import PartnerPage from "./pages/PartnerPage.jsx";
+import TeamPage from "./pages/TeamPage.jsx";
 import { ADOPTER_FAQS, MATCHING_FAQS } from "./lib/faq.js";
 
 const SITE_URL = "https://meetmycub.com";
@@ -26,9 +27,14 @@ const SEO = {
     description: "CUB helps shelters and pet partners create behaviour-informed dog profiles for more thoughtful adoption matching.",
   },
   faq: {
-    path: "/faq",
+    path: "/about/faq",
     title: "Dog Adoption Matching FAQ | CUB",
     description: "Read answers about CUB, dog adoption matching, behaviour profiles, match scores, shelter judgement, and adopter readiness.",
+  },
+  team: {
+    path: "/about/team",
+    title: "Our Team | CUB",
+    description: "Meet the people and partners behind CUB's behaviour-informed dog adoption matching platform.",
   },
 };
 
@@ -84,7 +90,8 @@ function setRouteJsonLd(route, url) {
 function routeFromPath(pathname) {
   if (pathname === "/match") return "match";
   if (pathname === "/partner" || pathname === "/shelter") return "partner";
-  if (pathname === "/faq" || pathname === "/faqs") return "faq";
+  if (pathname === "/faq" || pathname === "/faqs" || pathname === "/about/faq") return "faq";
+  if (pathname === "/team" || pathname === "/about/team") return "team";
   return "home";
 }
 
@@ -112,7 +119,15 @@ export default function App() {
   }, [route]);
 
   const navigate = (next) => {
-    const path = next === "match" ? "/match" : next === "partner" ? "/partner" : next === "faq" ? "/faq" : "/";
+    const path = next === "match"
+      ? "/match"
+      : next === "partner"
+        ? "/partner"
+        : next === "faq"
+          ? "/about/faq"
+          : next === "team"
+            ? "/about/team"
+            : "/";
     window.history.pushState({}, "", path);
     setRoute(next);
     window.scrollTo(0, 0);
@@ -125,6 +140,7 @@ export default function App() {
       {route === "match" && <MatchPage navigate={navigate} />}
       {route === "partner" && <PartnerPage navigate={navigate} />}
       {route === "faq" && <FaqPage />}
+      {route === "team" && <TeamPage />}
       <Partners />
     </>
   );
