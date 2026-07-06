@@ -169,6 +169,16 @@ sudo nginx -t && sudo systemctl reload nginx
   ```
 
   This prints a one-time access code for that shelter to log in with at `/shelter`.
+- **Set admin access:** SSH in and add a private admin code to the service env file.
+  Do not commit this code to GitHub.
+
+  ```bash
+  sudo bash -c 'printf "\nCUB_ADMIN_CODE=replace-with-a-long-private-code\n" >> /var/lib/cub/cub.env'
+  sudo systemctl restart cub
+  ```
+
+  Then open `/admin`. The admin view can create partner accounts, review all saved
+  dog records, and export a CSV that can be imported into Google Sheets.
 - **Logs:** `sudo journalctl -u cub -f`.
 - **Tear down:** `aws ec2 terminate-instances --instance-ids $IID`,
   `aws ec2 release-address --allocation-id $ALLOC`,

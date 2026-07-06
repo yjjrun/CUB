@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AdminPage from "./pages/AdminPage.jsx";
 import Header from "./components/Header.jsx";
 import Partners from "./components/Partners.jsx";
 import FaqPage from "./pages/FaqPage.jsx";
@@ -35,6 +36,12 @@ const SEO = {
     path: "/about/team",
     title: "Our Team | CUB",
     description: "Meet the people and partners behind CUB's behaviour-informed dog adoption matching platform.",
+  },
+  admin: {
+    path: "/admin",
+    title: "Admin | CUB",
+    description: "Private CUB administration view.",
+    robots: "noindex,nofollow",
   },
 };
 
@@ -88,6 +95,7 @@ function setRouteJsonLd(route, url) {
 }
 
 function routeFromPath(pathname) {
+  if (pathname === "/admin") return "admin";
   if (pathname === "/match") return "match";
   if (pathname === "/partner" || pathname === "/shelter") return "partner";
   if (pathname === "/faq" || pathname === "/faqs" || pathname === "/about/faq") return "faq";
@@ -115,6 +123,7 @@ export default function App() {
     setMeta("og:description", seo.description, "property");
     setMeta("twitter:title", seo.title);
     setMeta("twitter:description", seo.description);
+    setMeta("robots", seo.robots || "index,follow");
     setRouteJsonLd(route, url);
   }, [route]);
 
@@ -127,6 +136,8 @@ export default function App() {
           ? "/about/faq"
           : next === "team"
             ? "/about/team"
+            : next === "admin"
+              ? "/admin"
             : "/";
     window.history.pushState({}, "", path);
     setRoute(next);
@@ -141,6 +152,7 @@ export default function App() {
       {route === "partner" && <PartnerPage navigate={navigate} />}
       {route === "faq" && <FaqPage />}
       {route === "team" && <TeamPage />}
+      {route === "admin" && <AdminPage />}
       <Partners />
     </>
   );

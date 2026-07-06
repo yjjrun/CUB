@@ -30,6 +30,7 @@ PUBLIC_DOMAIN = "https://meetmycub.com"
 # CUB_CODE_PEPPER environment variable in production (see deploy/cub.service);
 # the fallback here is only for local development.
 CODE_PEPPER = os.environ.get("CUB_CODE_PEPPER", "dev-only-pepper-change-me").encode("utf-8")
+ADMIN_CODE = os.environ.get("CUB_ADMIN_CODE", "")
 SESSION_TTL_SECONDS = 12 * 60 * 60
 RATE_LIMIT_WINDOW_SECONDS = 300
 LOGIN_RATE_LIMIT = 8
@@ -322,12 +323,13 @@ def check_rate_limit(bucket: str, key: str, limit: int) -> bool:
         return True
 
 
-def create_session(partner_id: str, partner_name: str) -> str:
+def create_session(partner_id: str, partner_name: str, role: str = "partner") -> str:
     token = secrets.token_urlsafe(32)
     with _sessions_lock:
         _sessions[token] = {
             "partner_id": partner_id,
             "partner_name": partner_name,
+            "role": role,
             "expires_at": time.monotonic() + SESSION_TTL_SECONDS,
         }
     return token
@@ -464,6 +466,56 @@ def public_dog_view(dog: dict) -> dict:
     return {key: value for key, value in dog.items() if key not in {"notes", "cbarqAnswers", "partnerId"}}
 
 
+def admin_summary() -> dict:
+    with sqlite3.connect(DB_PATH) as con:
+        con.row_factory = sqlite3.Row
+        partners = [dict(row) for row in con.execute("SELECT id, name, created_at FROM partners ORDER BY name")]
+        dogs = list_dogs()
+    counts = {}
+    for dog in dogs:
+        partner_id = dog.get("partnerId") or ""
+        counts[partner_id] = counts.get(partner_id, 0) + 1
+    partner_rows = [
+        {
+            "id": partner["id"],
+            "name": partner["name"],
+            "createdAt": partner["created_at"],
+            "dogCount": counts.get(partner["id"], 0),
+        }
+        for partner in partners
+    ]
+    return {
+        "partners": partner_rows,
+        "dogs": dogs,
+        "totals": {
+            "partners": len(partner_rows),
+            "dogs": len(dogs),
+        },
+    }
+
+
+def csv_cell(value) -> str:
+    text = "" if value is None else str(value)
+    return '"' + text.replace('"', '""') + '"'
+
+
+def admin_csv() -> str:
+    rows = [[
+        "dog_id", "dog_name", "partner_id", "partner_name", "status", "breed",
+        "age_months", "sex", "size", "color", "cluster", "hdb_approved",
+        "home_fits", "exercise_needs", "contact_url", "created_at",
+    ]]
+    for dog in list_dogs():
+        rows.append([
+            dog.get("id"), dog.get("name"), dog.get("partnerId"), dog.get("shelter"),
+            dog.get("status"), dog.get("breed"), dog.get("ageMonths"), dog.get("sex"),
+            dog.get("size"), dog.get("color"), dog.get("cluster"), dog.get("hdbApproved"),
+            ", ".join(dog.get("homeFits") or []), ", ".join(dog.get("exerciseNeeds") or []),
+            dog.get("contactUrl"), dog.get("createdAt"),
+        ])
+    return "\n".join(",".join(csv_cell(cell) for cell in row) for row in rows) + "\n"
+
+
 def list_dogs(partner_id: str | None = None) -> list[dict]:
     query = "SELECT * FROM dogs"
     params: tuple = ()
@@ -564,12 +616,28 @@ class CUBHandler(BaseHTTPRequestHandler):
                 return
             self.send_json({"dogs": list_dogs(partner_id=session["partner_id"])})
             return
+        if parsed.path == "/api/admin/summary":
+            if self.require_admin_session() is None:
+                return
+            self.send_json(admin_summary())
+            return
+        if parsed.path == "/api/admin/export.csv":
+            if self.require_admin_session() is None:
+                return
+            self.send_csv(admin_csv(), "cub-admin-export.csv")
+            return
         self.serve_static(parsed.path)
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         if parsed.path == "/api/partner/login":
             self.handle_partner_login()
+            return
+        if parsed.path == "/api/admin/login":
+            self.handle_admin_login()
+            return
+        if parsed.path == "/api/admin/partners":
+            self.handle_admin_create_partner()
             return
         if parsed.path != "/api/dogs":
             self.send_error(HTTPStatus.NOT_FOUND)
@@ -609,12 +677,54 @@ class CUBHandler(BaseHTTPRequestHandler):
         token = create_session(partner["id"], partner["name"])
         self.send_json({"token": token, "partnerName": partner["name"]})
 
+    def handle_admin_login(self) -> None:
+        if not check_rate_limit("admin_login", self.client_address[0], LOGIN_RATE_LIMIT):
+            self.send_json({"error": "Too many attempts. Try again later."}, HTTPStatus.TOO_MANY_REQUESTS)
+            return
+        if not ADMIN_CODE:
+            self.send_json({"error": "Admin access is not configured on this server."}, HTTPStatus.SERVICE_UNAVAILABLE)
+            return
+        try:
+            payload = self.read_json_body()
+        except json.JSONDecodeError:
+            self.send_json({"error": "Request body must be JSON."}, HTTPStatus.BAD_REQUEST)
+            return
+        code = str(payload.get("code") or "").strip()
+        if not hmac.compare_digest(code, ADMIN_CODE):
+            self.send_json({"error": "Invalid admin code."}, HTTPStatus.UNAUTHORIZED)
+            return
+        token = create_session("admin", "Admin", role="admin")
+        self.send_json({"token": token})
+
+    def handle_admin_create_partner(self) -> None:
+        if self.require_admin_session() is None:
+            return
+        try:
+            payload = self.read_json_body()
+            partner, code = create_partner(str(payload.get("name") or ""), payload.get("code") or None)
+            self.send_json({"partner": partner, "code": code}, HTTPStatus.CREATED)
+        except ValueError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+        except sqlite3.IntegrityError:
+            self.send_json({"error": "That partner code already exists. Try another code."}, HTTPStatus.CONFLICT)
+        except json.JSONDecodeError:
+            self.send_json({"error": "Request body must be JSON."}, HTTPStatus.BAD_REQUEST)
+
     def require_session(self) -> dict | None:
         header = self.headers.get("Authorization", "")
         token = header[len("Bearer "):] if header.startswith("Bearer ") else ""
         session = get_session(token)
-        if session is None:
+        if session is None or session.get("role") != "partner":
             self.send_json({"error": "Partner login required."}, HTTPStatus.UNAUTHORIZED)
+            return None
+        return session
+
+    def require_admin_session(self) -> dict | None:
+        header = self.headers.get("Authorization", "")
+        token = header[len("Bearer "):] if header.startswith("Bearer ") else ""
+        session = get_session(token)
+        if session is None or session.get("role") != "admin":
+            self.send_json({"error": "Admin login required."}, HTTPStatus.UNAUTHORIZED)
             return None
         return session
 
@@ -643,6 +753,15 @@ class CUBHandler(BaseHTTPRequestHandler):
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def send_csv(self, csv_text: str, filename: str) -> None:
+        body = csv_text.encode("utf-8")
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "text/csv; charset=utf-8")
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)

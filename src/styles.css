@@ -1615,6 +1615,7 @@ input[type="range"] {
 @media (max-width: 1100px) {
   .app-grid,
   .portal-grid,
+  .admin-grid,
   .question-list,
   .factor-grid,
   .collab-grid,
@@ -2100,6 +2101,101 @@ input[type="range"] {
 .database-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .database-list li { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); }
 .database-list li span { color: var(--mocha); font-size: 0.85rem; }
+
+.admin-page {
+  display: grid;
+  gap: 24px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.68fr);
+  gap: 18px;
+}
+
+.admin-panel,
+.admin-form,
+.admin-dog-list,
+.admin-partner-group {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-partner-group {
+  gap: 10px;
+}
+
+.admin-code-box {
+  display: grid;
+  gap: 5px;
+  padding: 14px;
+  border: 1px solid rgba(104, 122, 103, 0.35);
+  border-radius: 8px;
+  background: rgba(227, 235, 224, 0.6);
+}
+
+.admin-code-box span,
+.admin-code-box small {
+  color: var(--mocha);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.admin-code-box b {
+  color: var(--coffee);
+  font-size: 1.18rem;
+  overflow-wrap: anywhere;
+}
+
+.admin-export {
+  justify-self: start;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 8px;
+}
+
+.admin-table {
+  display: grid;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.admin-table-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) 80px minmax(130px, 0.7fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--mocha);
+  font-size: 0.9rem;
+}
+
+.admin-table-row:first-child {
+  border-top: 0;
+}
+
+.admin-table-row.head {
+  background: rgba(234, 222, 210, 0.68);
+  color: var(--coffee);
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-table-row span:first-child {
+  color: var(--coffee);
+  font-weight: 850;
+}
+
+.admin-partner-group h3 {
+  margin: 0;
+  color: var(--coffee);
+  font-size: 1.02rem;
+}
 
 /* Match-score tiers: >70% green, 30–70% gold (default), <30% light red */
 .score-ring.tier-high { background: #e5f3e6; border-color: #4a9a52; }
