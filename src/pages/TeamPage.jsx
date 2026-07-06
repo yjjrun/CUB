@@ -11,7 +11,7 @@ export default function TeamPage() {
 
       <section className="team-section" aria-label="CUB team">
         <article className="team-row">
-          <h2>Yichao</h2>
+          <h2>Jiarun Yang</h2>
           <p>
             Founder of CUB, focused on helping adopters and shelters make more informed,
             behaviour-aware matches.
