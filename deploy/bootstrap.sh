@@ -56,7 +56,10 @@ install -m 0644 "$APP_DIR/deploy/cub.service" /etc/systemd/system/cub.service
 command -v setsebool >/dev/null && setsebool -P httpd_can_network_connect 1 || true
 
 systemctl daemon-reload
-systemctl enable --now cub
+systemctl enable cub
+# enable --now doesn't restart an already-running service, so redeploys would
+# keep serving the old code without an explicit restart.
+systemctl restart cub
 nginx -t
 systemctl enable --now nginx
 systemctl reload nginx || systemctl restart nginx
