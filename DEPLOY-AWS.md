@@ -160,8 +160,14 @@ sudo nginx -t && sudo systemctl reload nginx
   (pulls latest + restarts).
 - **Data:** SQLite at `/var/lib/cub/cub.sqlite` (outside the repo; survives redeploys).
   Back up with `sudo cp /var/lib/cub/cub.sqlite /var/lib/cub/cub.$(date +%F).bak`.
-- **Create a partner account:** SSH in, then
-  `cd /opt/cub && sudo -u cub python3 server.py add-partner --name "Shelter Name"`.
+- **Create a partner account:** SSH in, then run the command below. It must load
+  `CUB_CODE_PEPPER` from `/var/lib/cub/cub.env` (the same env the service uses) —
+  without it the code is hashed with the wrong key and the login will never match.
+
+  ```bash
+  sudo -u cub bash -c 'set -a; . /var/lib/cub/cub.env; CUB_DATA_DIR=/var/lib/cub python3 /opt/cub/server.py add-partner --name "Shelter Name"'
+  ```
+
   This prints a one-time access code for that shelter to log in with at `/shelter`.
 - **Logs:** `sudo journalctl -u cub -f`.
 - **Tear down:** `aws ec2 terminate-instances --instance-ids $IID`,

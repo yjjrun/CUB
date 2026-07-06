@@ -625,6 +625,14 @@ def main() -> None:
     init_db()
 
     if args.command == "add-partner":
+        if CODE_PEPPER == b"dev-only-pepper-change-me":
+            print(
+                "WARNING: CUB_CODE_PEPPER is not set — hashing with the dev fallback.\n"
+                "If the running service uses a different pepper (e.g. from\n"
+                "/var/lib/cub/cub.env), this code will NOT work for login. Run:\n"
+                "  sudo -u cub bash -c 'set -a; . /var/lib/cub/cub.env; "
+                "CUB_DATA_DIR=/var/lib/cub python3 /opt/cub/server.py add-partner --name \"...\"'"
+            )
         partner, code = create_partner(args.name, args.code)
         print(f"Created partner '{partner['name']}' (id={partner['id']}).")
         print(f"Access code (shown once, store it securely): {code}")
