@@ -6,7 +6,6 @@ import { breedPersonalityCluster } from "./breeds.js";
 export const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 export const APP_LOGO = "/assets/favicon-cub-transparent.png";
-export const PARTNER_ACCESS_CODE = "CUBSHOP";
 
 export const MBTI_QUESTIONS = [
   ["q1", "EI", "E", "After a busy week, social plans usually give me energy."],

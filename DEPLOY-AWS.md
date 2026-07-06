@@ -160,7 +160,9 @@ sudo nginx -t && sudo systemctl reload nginx
   (pulls latest + restarts).
 - **Data:** SQLite at `/var/lib/cub/cub.sqlite` (outside the repo; survives redeploys).
   Back up with `sudo cp /var/lib/cub/cub.sqlite /var/lib/cub/cub.$(date +%F).bak`.
-- **Seed demo dogs:** enter them at `/partner` (code `CUBSHOP`) or POST to `/api/dogs`.
+- **Create a partner account:** SSH in, then
+  `cd /opt/cub && sudo -u cub python3 server.py add-partner --name "Shelter Name"`.
+  This prints a one-time access code for that shelter to log in with at `/shelter`.
 - **Logs:** `sudo journalctl -u cub -f`.
 - **Tear down:** `aws ec2 terminate-instances --instance-ids $IID`,
   `aws ec2 release-address --allocation-id $ALLOC`,
