@@ -1,17 +1,19 @@
+// Breeds banned in Singapore (AVS Part 1 Specified Dogs) are excluded from
+// this options list entirely: Pit Bull types (American Pit Bull Terrier,
+// American Staffordshire Terrier, Staffordshire Bull Terrier, American
+// Bulldog), Akita, Neapolitan Mastiff, Tosa, Dogo Argentino, Fila Brasileiro,
+// Boerboel, Perro de Presa Canario, and their crosses.
 export const AKC_BREEDS = [
   "Affenpinscher",
   "Afghan Hound",
   "Airedale Terrier",
-  "Akita",
   "Alaskan Klee Kai",
   "Alaskan Malamute",
-  "American Bulldog",
   "American English Coonhound",
   "American Eskimo Dog",
   "American Foxhound",
   "American Hairless Terrier",
   "American Leopard Hound",
-  "American Staffordshire Terrier",
   "American Water Spaniel",
   "Anatolian Shepherd Dog",
   "Appenzeller Sennenhund",
@@ -45,7 +47,6 @@ export const AKC_BREEDS = [
   "Bloodhound",
   "Blue Picardy Spaniel",
   "Bluetick Coonhound",
-  "Boerboel",
   "Bohemian Shepherd",
   "Bolognese",
   "Border Collie",
@@ -97,7 +98,6 @@ export const AKC_BREEDS = [
   "Danish-Swedish Farmdog",
   "Deutscher Wachtelhund",
   "Doberman Pinscher",
-  "Dogo Argentino",
   "Dogue de Bordeaux",
   "Drentsche Patrijshond",
   "Drever",
@@ -146,7 +146,6 @@ export const AKC_BREEDS = [
   "Irish Wolfhound",
   "Italian Greyhound",
   "Jagdterrier",
-  "Japanese Akitainu",
   "Japanese Chin",
   "Japanese Spitz",
   "Japanese Terrier",
@@ -178,7 +177,6 @@ export const AKC_BREEDS = [
   "Miniature Schnauzer",
   "Mountain Cur",
   "Mudi",
-  "Neapolitan Mastiff",
   "Nederlandse Kooikerhondje",
   "Newfoundland",
   "Norfolk Terrier",
@@ -195,7 +193,6 @@ export const AKC_BREEDS = [
   "Parson Russell Terrier",
   "Pekingese",
   "Pembroke Welsh Corgi",
-  "Perro de Presa Canario",
   "Peruvian Inca Orchid",
   "Petit Basset Griffon Vendeen",
   "Pharaoh Hound",
@@ -256,7 +253,6 @@ export const AKC_BREEDS = [
   "Spanish Water Dog",
   "Spinone Italiano",
   "Stabyhoun",
-  "Staffordshire Bull Terrier",
   "Standard Schnauzer",
   "Sussex Spaniel",
   "Swedish Lapphund",
@@ -269,7 +265,6 @@ export const AKC_BREEDS = [
   "Tibetan Spaniel",
   "Tibetan Terrier",
   "Tornjak",
-  "Tosa",
   "Toy Fox Terrier",
   "Transylvanian Hound",
   "Treeing Tennessee Brindle",
@@ -294,33 +289,43 @@ export const AKC_BREEDS = [
 export const HOME_FIT_OPTIONS = ["HDB flat", "condominium", "landed house"];
 export const EXERCISE_FIT_OPTIONS = ["low", "moderate", "moderateHigh", "high"];
 
-const HDB_SUITABLE_BREEDS = new Set([
+// The official HDB-approved breed list (62 breeds, AVS/HDB), mapped to the
+// AKC names used in AKC_BREEDS. HDB approval is this fixed list — never a
+// size judgement. Local mixed-breed dogs up to 55cm can qualify separately
+// via Project ADORE.
+const HDB_APPROVED_BREEDS = new Set([
   "Affenpinscher",
   "Australian Terrier",
   "Bichon Frise",
   "Bolognese",
+  "Border Terrier",
   "Boston Terrier",
   "Brussels Griffon",
   "Cairn Terrier",
   "Cavalier King Charles Spaniel",
+  "Cesky Terrier",
   "Chihuahua",
   "Chinese Crested",
   "Coton de Tulear",
   "Dachshund",
   "Dandie Dinmont Terrier",
   "English Toy Spaniel",
-  "French Bulldog",
+  "German Spitz",
   "Havanese",
   "Italian Greyhound",
+  "Jagdterrier",
   "Japanese Chin",
   "Japanese Spitz",
+  "Lakeland Terrier",
   "Lhasa Apso",
   "Lowchen",
   "Maltese",
+  "Manchester Terrier",
   "Manchester Terrier (Toy)",
   "Miniature Pinscher",
   "Miniature Schnauzer",
   "Norfolk Terrier",
+  "Norwegian Lundehund",
   "Norwich Terrier",
   "Papillon",
   "Pekingese",
@@ -328,17 +333,38 @@ const HDB_SUITABLE_BREEDS = new Set([
   "Poodle (Miniature)",
   "Poodle (Toy)",
   "Pug",
-  "Russian Toy",
+  "Russell Terrier",
   "Schipperke",
   "Scottish Terrier",
   "Sealyham Terrier",
+  "Shetland Sheepdog",
   "Shih Tzu",
   "Silky Terrier",
-  "Skye Terrier",
+  "Smooth Fox Terrier",
   "Tibetan Spaniel",
   "Toy Fox Terrier",
+  "Volpino Italiano",
+  "Welsh Terrier",
   "West Highland White Terrier",
+  "Wire Fox Terrier",
   "Yorkshire Terrier",
+]);
+
+// AVS Part 2 Specified Dogs: legal to own but never HDB-approved, and subject
+// to conditions (leashed + muzzled in public, sterilisation, insurance).
+const SPECIFIED_PART2_BREEDS = new Set([
+  "Bull Terrier",
+  "Miniature Bull Terrier",
+  "Doberman Pinscher",
+  "Rottweiler",
+  "German Shepherd Dog",
+  "Belgian Laekenois",
+  "Belgian Malinois",
+  "Belgian Sheepdog",
+  "Belgian Tervuren",
+  "Bullmastiff",
+  "Cane Corso",
+  "Dogue de Bordeaux",
 ]);
 
 const HIGH_EXERCISE_TERMS = [
@@ -428,9 +454,11 @@ export function exerciseFitOptions(minimumNeed) {
 export function deriveDogCareProfile({ breed, size } = {}) {
   const label = labelForBreed(breed);
   const sizeLabel = String(size || "").toLowerCase();
-  const hdbApproved = HDB_SUITABLE_BREEDS.has(label) || (
-    sizeLabel === "small" && !includesAny(label, HIGH_EXERCISE_TERMS)
-  );
+  // HDB approval follows the official AVS/HDB breed list only — size is not
+  // a criterion. Unlisted or mixed breeds default to not approved (local
+  // mixed-breeds up to 55cm may still qualify via Project ADORE).
+  const hdbApproved = HDB_APPROVED_BREEDS.has(label);
+  const specified = SPECIFIED_PART2_BREEDS.has(label);
 
   let homeFit = "landed house";
   if (hdbApproved) homeFit = "HDB flat";
@@ -445,6 +473,7 @@ export function deriveDogCareProfile({ breed, size } = {}) {
 
   return {
     hdbApproved,
+    specified,
     homeFit,
     homeFits: expandHomeFits(homeFit),
     exerciseNeed,

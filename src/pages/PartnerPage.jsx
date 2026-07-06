@@ -173,6 +173,18 @@ function Intake({ session, onLogout }) {
                 <span>HDB status</span>
                 <div><b>{careProfile.hdbApproved ? "HDB approved" : "Not HDB approved"}</b></div>
               </div>
+              {careProfile.specified && (
+                <p className="helper-copy">
+                  AVS Part 2 specified breed: not allowed in HDB flats; must be leashed and
+                  muzzled in public, and licensing requires sterilisation and insurance.
+                </p>
+              )}
+              {!careProfile.hdbApproved && !careProfile.specified && partner.breed && (
+                <p className="helper-copy">
+                  Not on the official HDB-approved breed list. Local mixed-breed dogs up to
+                  55cm may still qualify for HDB homes via Project ADORE.
+                </p>
+              )}
             </div>
           </div>
 

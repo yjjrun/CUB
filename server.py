@@ -168,17 +168,40 @@ CLUSTER_CENTROIDS = {
 
 HOME_FIT_OPTIONS = ["HDB flat", "condominium", "landed house"]
 EXERCISE_FIT_OPTIONS = ["low", "moderate", "moderateHigh", "high"]
-HDB_SUITABLE_BREEDS = {
-    "Affenpinscher", "Australian Terrier", "Bichon Frise", "Bolognese", "Boston Terrier",
-    "Brussels Griffon", "Cairn Terrier", "Cavalier King Charles Spaniel", "Chihuahua",
-    "Chinese Crested", "Coton de Tulear", "Dachshund", "Dandie Dinmont Terrier",
-    "English Toy Spaniel", "French Bulldog", "Havanese", "Italian Greyhound",
-    "Japanese Chin", "Japanese Spitz", "Lhasa Apso", "Lowchen", "Maltese",
-    "Manchester Terrier (Toy)", "Miniature Pinscher", "Miniature Schnauzer",
-    "Norfolk Terrier", "Norwich Terrier", "Papillon", "Pekingese", "Pomeranian",
-    "Poodle (Miniature)", "Poodle (Toy)", "Pug", "Russian Toy", "Schipperke",
-    "Scottish Terrier", "Sealyham Terrier", "Shih Tzu", "Silky Terrier", "Skye Terrier",
-    "Tibetan Spaniel", "Toy Fox Terrier", "West Highland White Terrier", "Yorkshire Terrier",
+# Official HDB-approved breed list (AVS/HDB, 62 breeds) mapped to the AKC
+# names used by the frontend. HDB approval is this fixed list — never a size
+# judgement. Local mixed-breeds up to 55cm may qualify via Project ADORE.
+HDB_APPROVED_BREEDS = {
+    "Affenpinscher", "Australian Terrier", "Bichon Frise", "Bolognese",
+    "Border Terrier", "Boston Terrier", "Brussels Griffon", "Cairn Terrier",
+    "Cavalier King Charles Spaniel", "Cesky Terrier", "Chihuahua", "Chinese Crested",
+    "Coton de Tulear", "Dachshund", "Dandie Dinmont Terrier", "English Toy Spaniel",
+    "German Spitz", "Havanese", "Italian Greyhound", "Jagdterrier", "Japanese Chin",
+    "Japanese Spitz", "Lakeland Terrier", "Lhasa Apso", "Lowchen", "Maltese",
+    "Manchester Terrier", "Manchester Terrier (Toy)", "Miniature Pinscher",
+    "Miniature Schnauzer", "Norfolk Terrier", "Norwegian Lundehund", "Norwich Terrier",
+    "Papillon", "Pekingese", "Pomeranian", "Poodle (Miniature)", "Poodle (Toy)",
+    "Pug", "Russell Terrier", "Schipperke", "Scottish Terrier", "Sealyham Terrier",
+    "Shetland Sheepdog", "Shih Tzu", "Silky Terrier", "Smooth Fox Terrier",
+    "Tibetan Spaniel", "Toy Fox Terrier", "Volpino Italiano", "Welsh Terrier",
+    "West Highland White Terrier", "Wire Fox Terrier", "Yorkshire Terrier",
+}
+
+# AVS Part 1 Specified Dogs: banned in Singapore (no import, no new licences).
+# Substring terms so crosses described in free text are also caught.
+BANNED_BREED_TERMS = [
+    "Pit Bull", "Pitbull", "American Bulldog", "American Staffordshire",
+    "Staffordshire Bull Terrier", "Akita", "Neapolitan Mastiff", "Tosa",
+    "Dogo Argentino", "Fila Brasileiro", "Boerboel", "Presa Canario",
+]
+
+# AVS Part 2 Specified Dogs: legal but never HDB-approved; leashed + muzzled
+# in public, and licensing requires sterilisation and insurance.
+SPECIFIED_PART2_BREEDS = {
+    "Bull Terrier", "Miniature Bull Terrier", "Doberman Pinscher", "Rottweiler",
+    "German Shepherd Dog", "Belgian Laekenois", "Belgian Malinois",
+    "Belgian Sheepdog", "Belgian Tervuren", "Bullmastiff", "Cane Corso",
+    "Dogue de Bordeaux",
 }
 HIGH_EXERCISE_TERMS = [
     "Cattle Dog", "Collie", "Husky", "Kelpie", "Malinois", "Pointer", "Retriever",
@@ -375,12 +398,16 @@ def exercise_fit_options(minimum_need: str) -> list[str]:
     return EXERCISE_FIT_OPTIONS[start:]
 
 
+def is_banned_breed(breed: str) -> bool:
+    return includes_any(str(breed or ""), BANNED_BREED_TERMS)
+
+
 def derive_dog_care_profile(breed: str, size: str) -> dict:
     label = str(breed or "").strip()
     size_label = str(size or "").strip().lower()
-    hdb_approved = label in HDB_SUITABLE_BREEDS or (
-        size_label == "small" and not includes_any(label, HIGH_EXERCISE_TERMS)
-    )
+    # HDB approval follows the official AVS/HDB breed list only — size is not
+    # a criterion. Unlisted or mixed breeds default to not approved.
+    hdb_approved = label in HDB_APPROVED_BREEDS
 
     home_fit = "landed house"
     if hdb_approved:
@@ -398,6 +425,7 @@ def derive_dog_care_profile(breed: str, size: str) -> dict:
 
     return {
         "hdb_approved": hdb_approved,
+        "specified": label in SPECIFIED_PART2_BREEDS,
         "home_fit": home_fit,
         "home_fits": expand_home_fits(home_fit),
         "exercise_need": exercise_need,
@@ -447,6 +475,11 @@ def insert_dog(payload: dict, partner: dict) -> dict:
     cluster = classify_cluster(factors)
     breed = str(payload.get("breed") or "").strip()
     size = str(payload.get("size") or "").strip()
+    if is_banned_breed(breed):
+        raise ValueError(
+            "This breed is on the AVS Part 1 specified (banned) list and cannot "
+            "be imported or newly licensed in Singapore."
+        )
     care_profile = derive_dog_care_profile(breed, size)
     dog_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
@@ -620,6 +653,10 @@ def main() -> None:
     )
     add_partner.add_argument("--name", required=True, help="Shelter or pet shop name.")
     add_partner.add_argument("--code", default=None, help="Custom access code (random if omitted).")
+    subparsers.add_parser(
+        "recompute-care",
+        help="Re-derive HDB approval, home fit, and exercise need for stored dogs.",
+    )
 
     args = parser.parse_args()
     init_db()
@@ -636,6 +673,30 @@ def main() -> None:
         partner, code = create_partner(args.name, args.code)
         print(f"Created partner '{partner['name']}' (id={partner['id']}).")
         print(f"Access code (shown once, store it securely): {code}")
+        return
+
+    if args.command == "recompute-care":
+        with sqlite3.connect(DB_PATH) as con:
+            con.row_factory = sqlite3.Row
+            rows = con.execute("SELECT id, breed, size FROM dogs").fetchall()
+            for row in rows:
+                profile = derive_dog_care_profile(row["breed"], row["size"])
+                con.execute(
+                    """
+                    UPDATE dogs SET hdb_approved = ?, home_fit = ?, home_fits = ?,
+                        exercise_need = ?, exercise_needs = ? WHERE id = ?
+                    """,
+                    (
+                        1 if profile["hdb_approved"] else 0,
+                        profile["home_fit"],
+                        json.dumps(profile["home_fits"]),
+                        profile["exercise_need"],
+                        json.dumps(profile["exercise_needs"]),
+                        row["id"],
+                    ),
+                )
+            con.commit()
+        print(f"Recomputed care profiles for {len(rows)} dog(s).")
         return
 
     httpd = ThreadingHTTPServer((args.host, args.port), CUBHandler)
