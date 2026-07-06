@@ -1811,6 +1811,19 @@ input[type="range"] {
     padding: 18px 0;
   }
 
+  .admin-table-row,
+  .admin-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-detail-head {
+    flex-direction: column;
+  }
+
+  .danger-action {
+    width: 100%;
+  }
+
   .hero-dog-visual {
     min-height: 500px;
     width: 100%;
@@ -2189,6 +2202,116 @@ input[type="range"] {
 .admin-table-row span:first-child {
   color: var(--coffee);
   font-weight: 850;
+}
+
+.admin-row-button {
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.admin-row-button:hover,
+.admin-row-button:focus-visible,
+.admin-row-button.is-selected {
+  background: rgba(247, 234, 211, 0.8);
+}
+
+.admin-detail-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.danger-action {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(141, 51, 40, 0.28);
+  border-radius: 8px;
+  background: #f4ded9;
+  color: var(--danger);
+  font-weight: 900;
+}
+
+.danger-action:hover,
+.danger-action:focus-visible {
+  background: #ebc9c1;
+}
+
+.admin-click-list li {
+  padding: 0;
+}
+
+.admin-click-list button {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.admin-click-list button:hover,
+.admin-click-list button:focus-visible {
+  background: rgba(247, 234, 211, 0.62);
+}
+
+.admin-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-detail-item {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.admin-detail-item span {
+  color: var(--mocha);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.admin-detail-item b {
+  color: var(--coffee);
+  overflow-wrap: anywhere;
+}
+
+.admin-dog-photo {
+  width: min(240px, 100%);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+}
+
+.admin-notes {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--cream);
+}
+
+.admin-notes h3,
+.admin-notes p {
+  margin: 0;
+}
+
+.admin-notes h3 {
+  color: var(--coffee);
+  font-size: 1rem;
+}
+
+.admin-notes p {
+  color: var(--mocha);
+  line-height: 1.55;
 }
 
 .admin-partner-group h3 {

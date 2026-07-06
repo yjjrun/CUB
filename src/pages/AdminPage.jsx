@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { adminLogin, createAdminPartner, downloadAdminCsv, loadAdminSummary } from "../api.js";
+import {
+  adminLogin,
+  createAdminPartner,
+  deleteAdminDog,
+  deleteAdminPartner,
+  downloadAdminCsv,
+  loadAdminSummary,
+} from "../api.js";
 
 const ADMIN_TOKEN_KEY = "cub_admin_token";
 
@@ -60,6 +67,8 @@ function AdminDashboard({ token, onLogout }) {
   const [customCode, setCustomCode] = useState("");
   const [created, setCreated] = useState(null);
   const [error, setError] = useState("");
+  const [selectedPartnerId, setSelectedPartnerId] = useState("");
+  const [selectedDogId, setSelectedDogId] = useState("");
 
   const dogsByPartner = useMemo(() => {
     const map = new Map();
@@ -70,9 +79,21 @@ function AdminDashboard({ token, onLogout }) {
     return map;
   }, [summary.dogs]);
 
+  const selectedPartner = summary.partners.find((partner) => partner.id === selectedPartnerId) || null;
+  const selectedPartnerDogs = selectedPartner ? (dogsByPartner.get(selectedPartner.id) || []) : [];
+  const selectedDog = summary.dogs.find((dog) => dog.id === selectedDogId) || null;
+
   const refresh = () => {
     loadAdminSummary(token)
-      .then(setSummary)
+      .then((payload) => {
+        setSummary(payload);
+        setSelectedPartnerId((current) => (
+          current && payload.partners.some((partner) => partner.id === current) ? current : ""
+        ));
+        setSelectedDogId((current) => (
+          current && payload.dogs.some((dog) => dog.id === current) ? current : ""
+        ));
+      })
       .catch((err) => {
         if (err.status === 401) onLogout();
         else setError(err.message || "Could not load admin view.");
@@ -115,6 +136,35 @@ function AdminDashboard({ token, onLogout }) {
     } catch (err) {
       if (err.status === 401) onLogout();
       else setError(err.message || "Could not create partner.");
+    }
+  };
+
+  const removeDog = async (dog) => {
+    if (!window.confirm(`Delete ${dog.name || "this dog"} from CUB? This cannot be undone.`)) return;
+    setError("");
+    try {
+      await deleteAdminDog(token, dog.id);
+      setSelectedDogId("");
+      refresh();
+    } catch (err) {
+      if (err.status === 401) onLogout();
+      else setError(err.message || "Could not delete dog.");
+    }
+  };
+
+  const removePartner = async (partner) => {
+    const count = dogsByPartner.get(partner.id)?.length || 0;
+    const message = `Delete ${partner.name} and ${count} dog record${count === 1 ? "" : "s"}? This cannot be undone.`;
+    if (!window.confirm(message)) return;
+    setError("");
+    try {
+      await deleteAdminPartner(token, partner.id);
+      setSelectedPartnerId("");
+      setSelectedDogId("");
+      refresh();
+    } catch (err) {
+      if (err.status === 401) onLogout();
+      else setError(err.message || "Could not delete partner.");
     }
   };
 
@@ -177,18 +227,53 @@ function AdminDashboard({ token, onLogout }) {
               <span>Partner</span><span>Dogs</span><span>Created</span>
             </div>
             {summary.partners.map((partner) => (
-              <div className="admin-table-row" role="row" key={partner.id}>
+              <button
+                className={`admin-table-row admin-row-button ${selectedPartnerId === partner.id ? "is-selected" : ""}`}
+                role="row"
+                key={partner.id}
+                type="button"
+                onClick={() => {
+                  setSelectedPartnerId(partner.id);
+                  setSelectedDogId("");
+                }}
+              >
                 <span>{partner.name}</span>
                 <span>{partner.dogCount}</span>
                 <span>{formatDate(partner.createdAt)}</span>
-              </div>
+              </button>
             ))}
           </div>
         )}
       </section>
 
+      {selectedPartner && (
+        <section className="panel admin-panel">
+          <div className="panel-head admin-detail-head">
+            <div>
+              <h2>{selectedPartner.name}</h2>
+              <p className="helper-copy">{selectedPartnerDogs.length} dog record{selectedPartnerDogs.length === 1 ? "" : "s"} · Created {formatDate(selectedPartner.createdAt)}</p>
+            </div>
+            <button className="danger-action" type="button" onClick={() => removePartner(selectedPartner)}>Delete Partner</button>
+          </div>
+          {selectedPartnerDogs.length === 0 ? (
+            <p className="helper-copy">This partner has not added dogs yet.</p>
+          ) : (
+            <ul className="database-list admin-click-list">
+              {selectedPartnerDogs.map((dog) => (
+                <li key={dog.id}>
+                  <button type="button" onClick={() => setSelectedDogId(dog.id)}>
+                    <b>{dog.name || "Unnamed dog"}</b>
+                    <span>{dog.breed} · {dog.cluster} · {dog.status}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       <section className="panel admin-panel">
-        <div className="panel-head"><h2>Dog records</h2></div>
+        <div className="panel-head"><h2>All dog records</h2></div>
         {summary.dogs.length === 0 ? (
           <p className="helper-copy">No dogs saved yet.</p>
         ) : (
@@ -199,11 +284,13 @@ function AdminDashboard({ token, onLogout }) {
                 {(dogsByPartner.get(partner.id) || []).length === 0 ? (
                   <p className="helper-copy">No dogs added.</p>
                 ) : (
-                  <ul className="database-list">
+                  <ul className="database-list admin-click-list">
                     {(dogsByPartner.get(partner.id) || []).map((dog) => (
                       <li key={dog.id}>
-                        <b>{dog.name || "Unnamed dog"}</b>
-                        <span>{dog.breed} · {dog.cluster} · {dog.status}</span>
+                        <button type="button" onClick={() => setSelectedDogId(dog.id)}>
+                          <b>{dog.name || "Unnamed dog"}</b>
+                          <span>{dog.breed} · {dog.cluster} · {dog.status}</span>
+                        </button>
                       </li>
                     ))}
                   </ul>
@@ -213,11 +300,13 @@ function AdminDashboard({ token, onLogout }) {
             {(dogsByPartner.get("unassigned") || []).length > 0 && (
               <article className="admin-partner-group">
                 <h3>Unassigned</h3>
-                <ul className="database-list">
+                <ul className="database-list admin-click-list">
                   {dogsByPartner.get("unassigned").map((dog) => (
                     <li key={dog.id}>
-                      <b>{dog.name || "Unnamed dog"}</b>
-                      <span>{dog.breed} · {dog.cluster} · {dog.shelter}</span>
+                      <button type="button" onClick={() => setSelectedDogId(dog.id)}>
+                        <b>{dog.name || "Unnamed dog"}</b>
+                        <span>{dog.breed} · {dog.cluster} · {dog.shelter}</span>
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -226,7 +315,54 @@ function AdminDashboard({ token, onLogout }) {
           </div>
         )}
       </section>
+
+      {selectedDog && (
+        <section className="panel admin-panel">
+          <div className="panel-head admin-detail-head">
+            <div>
+              <h2>{selectedDog.name || "Unnamed dog"}</h2>
+              <p className="helper-copy">{selectedDog.breed} · {selectedDog.cluster} · Added {formatDate(selectedDog.createdAt)}</p>
+            </div>
+            <button className="danger-action" type="button" onClick={() => removeDog(selectedDog)}>Delete Dog</button>
+          </div>
+          <div className="admin-detail-grid">
+            <Detail label="Partner" value={selectedDog.shelter || "Unassigned"} />
+            <Detail label="Status" value={selectedDog.status} />
+            <Detail label="Age" value={selectedDog.ageMonths ? `${selectedDog.ageMonths} months` : "Not set"} />
+            <Detail label="Sex" value={selectedDog.sex || "Not set"} />
+            <Detail label="Size" value={selectedDog.size || "Not set"} />
+            <Detail label="Colour" value={selectedDog.color || "Not set"} />
+            <Detail label="HDB" value={selectedDog.hdbApproved ? "HDB approved" : "Not HDB approved"} />
+            <Detail label="Home fit" value={(selectedDog.homeFits || []).join(", ") || "Not set"} />
+            <Detail label="Exercise" value={(selectedDog.exerciseNeeds || []).join(", ") || "Not set"} />
+            <Detail label="Contact" value={selectedDog.contactUrl || "Not set"} />
+          </div>
+          {selectedDog.imageUrl && <img className="admin-dog-photo" src={selectedDog.imageUrl} alt={selectedDog.name || "Dog"} />}
+          {selectedDog.notes && (
+            <div className="admin-notes">
+              <h3>Behaviour notes</h3>
+              <p>{selectedDog.notes}</p>
+            </div>
+          )}
+          {selectedDog.cbarqFactors && (
+            <div className="factor-grid compact">
+              {Object.entries(selectedDog.cbarqFactors).map(([key, value]) => (
+                <div className="factor-chip" key={key}><span>{key}</span><b>{value}</b></div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </main>
+  );
+}
+
+function Detail({ label, value }) {
+  return (
+    <div className="admin-detail-item">
+      <span>{label}</span>
+      <b>{value}</b>
+    </div>
   );
 }
 

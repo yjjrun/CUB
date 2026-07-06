@@ -89,3 +89,23 @@ export async function downloadAdminCsv(token) {
   }
   return res.blob();
 }
+
+export async function deleteAdminDog(token, dogId) {
+  const res = await fetch(`/api/admin/dogs/${encodeURIComponent(dogId)}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const payload = await res.json();
+  if (!res.ok) throw new ApiError(payload.error || "Could not delete dog.", res.status);
+  return payload;
+}
+
+export async function deleteAdminPartner(token, partnerId) {
+  const res = await fetch(`/api/admin/partners/${encodeURIComponent(partnerId)}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const payload = await res.json();
+  if (!res.ok) throw new ApiError(payload.error || "Could not delete partner.", res.status);
+  return payload;
+}

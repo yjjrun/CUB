@@ -516,6 +516,23 @@ def admin_csv() -> str:
     return "\n".join(",".join(csv_cell(cell) for cell in row) for row in rows) + "\n"
 
 
+def delete_dog(dog_id: str) -> bool:
+    with sqlite3.connect(DB_PATH) as con:
+        cur = con.execute("DELETE FROM dogs WHERE id = ?", (dog_id,))
+        con.commit()
+    return cur.rowcount > 0
+
+
+def delete_partner(partner_id: str) -> tuple[bool, int]:
+    with sqlite3.connect(DB_PATH) as con:
+        dog_count = con.execute("SELECT COUNT(*) FROM dogs WHERE partner_id = ?", (partner_id,)).fetchone()[0]
+        cur = con.execute("DELETE FROM partners WHERE id = ?", (partner_id,))
+        if cur.rowcount:
+            con.execute("DELETE FROM dogs WHERE partner_id = ?", (partner_id,))
+        con.commit()
+    return cur.rowcount > 0, dog_count
+
+
 def list_dogs(partner_id: str | None = None) -> list[dict]:
     query = "SELECT * FROM dogs"
     params: tuple = ()
@@ -659,6 +676,33 @@ class CUBHandler(BaseHTTPRequestHandler):
             self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
         except json.JSONDecodeError:
             self.send_json({"error": "Request body must be JSON."}, HTTPStatus.BAD_REQUEST)
+
+    def do_DELETE(self) -> None:
+        parsed = urlparse(self.path)
+        if self.require_admin_session() is None:
+            return
+        if parsed.path.startswith("/api/admin/dogs/"):
+            dog_id = unquote(parsed.path.rsplit("/", 1)[-1])
+            if not dog_id:
+                self.send_json({"error": "Dog id is required."}, HTTPStatus.BAD_REQUEST)
+                return
+            if not delete_dog(dog_id):
+                self.send_json({"error": "Dog record not found."}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True})
+            return
+        if parsed.path.startswith("/api/admin/partners/"):
+            partner_id = unquote(parsed.path.rsplit("/", 1)[-1])
+            if not partner_id:
+                self.send_json({"error": "Partner id is required."}, HTTPStatus.BAD_REQUEST)
+                return
+            deleted, dog_count = delete_partner(partner_id)
+            if not deleted:
+                self.send_json({"error": "Partner not found."}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True, "deletedDogs": dog_count})
+            return
+        self.send_error(HTTPStatus.NOT_FOUND)
 
     def handle_partner_login(self) -> None:
         if not check_rate_limit("login", self.client_address[0], LOGIN_RATE_LIMIT):
