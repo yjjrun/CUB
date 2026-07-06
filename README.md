@@ -57,7 +57,14 @@ points at a persistent disk so data survives restarts and redeploys.
 - `/shelter` — locked shelter question/intake page
 - `/partner` — old alias for the shelter intake page
 
-Partner access code: `CUBSHOP`
+Each shelter/pet shop logs in with its own access code rather than a single
+shared one. Create an account for a partner with:
+
+```bash
+python3 server.py add-partner --name "Shelter Name"
+```
+
+This prints a one-time access code for that partner to log in at `/shelter`.
 
 ## Data
 

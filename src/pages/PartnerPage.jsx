@@ -4,20 +4,34 @@ import {
   deriveCbarqFactors, cbarqAnsweredCount,
 } from "../lib/cbarq.js";
 import { AKC_BREEDS, deriveDogCareProfile } from "../lib/breeds.js";
-import { PARTNER_ACCESS_CODE } from "../lib/matching.js";
-import { loadDogs, submitDog } from "../api.js";
+import { loadPartnerDogs, partnerLogin, submitDog } from "../api.js";
 
 const EMPTY_PARTNER = {
-  name: "", shelter: "", contactUrl: "", breed: "", ageMonths: "", sex: "Female",
+  name: "", contactUrl: "", breed: "", ageMonths: "", sex: "Female",
   size: "Small", color: "", imageUrl: "", notes: "",
 };
 
+const TOKEN_KEY = "cub_partner_token";
+const NAME_KEY = "cub_partner_name";
+
+function readStoredSession() {
+  const token = localStorage.getItem(TOKEN_KEY);
+  const partnerName = localStorage.getItem(NAME_KEY);
+  return token && partnerName ? { token, partnerName } : null;
+}
+
 export default function PartnerPage() {
-  const [unlocked, setUnlocked] = useState(false);
+  const [session, setSession] = useState(readStoredSession);
   const [code, setCode] = useState("");
   const [lockError, setLockError] = useState("");
 
-  if (!unlocked) {
+  const logout = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(NAME_KEY);
+    setSession(null);
+  };
+
+  if (!session) {
     return (
       <main className="screen partner-screen">
         <section className="access-card panel">
@@ -27,10 +41,17 @@ export default function PartnerPage() {
           </div>
           <form
             className="access-form"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              if (code.trim().toUpperCase() === PARTNER_ACCESS_CODE) setUnlocked(true);
-              else setLockError("That code does not match the partner access code.");
+              setLockError("");
+              try {
+                const { token, partnerName } = await partnerLogin(code);
+                localStorage.setItem(TOKEN_KEY, token);
+                localStorage.setItem(NAME_KEY, partnerName);
+                setSession({ token, partnerName });
+              } catch (err) {
+                setLockError(err.message || "That code does not match a partner account.");
+              }
             }}
           >
             {lockError && <p className="notice error">{lockError}</p>}
@@ -44,17 +65,26 @@ export default function PartnerPage() {
       </main>
     );
   }
-  return <Intake />;
+  return <Intake session={session} onLogout={logout} />;
 }
 
-function Intake() {
+function Intake({ session, onLogout }) {
   const [partner, setPartner] = useState(EMPTY_PARTNER);
   const [cbarq, setCbarq] = useState(DEFAULT_CBARQ_ANSWERS);
   const [dogs, setDogs] = useState([]);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState("");
 
-  useEffect(() => { loadDogs().then(setDogs).catch(() => setDogs([])); }, []);
+  const refreshDogs = () => {
+    loadPartnerDogs(session.token)
+      .then(setDogs)
+      .catch((err) => {
+        if (err.status === 401) onLogout();
+        else setDogs([]);
+      });
+  };
+
+  useEffect(refreshDogs, []);
 
   const setField = (key, value) => setPartner((p) => ({ ...p, [key]: value }));
   const careProfile = useMemo(
@@ -75,7 +105,7 @@ function Intake() {
     e.preventDefault();
     setError(""); setSaved("");
     try {
-      const payload = await submitDog({
+      const payload = await submitDog(session.token, {
         ...partner,
         ageMonths: partner.ageMonths ? Number(partner.ageMonths) : null,
         ...careProfile,
@@ -85,8 +115,9 @@ function Intake() {
       setSaved(`${partner.name || "This dog"} was saved as ${payload.cluster}.`);
       setPartner(EMPTY_PARTNER);
       setCbarq(DEFAULT_CBARQ_ANSWERS);
-      loadDogs().then(setDogs).catch(() => {});
+      refreshDogs();
     } catch (err) {
+      if (err.status === 401) { onLogout(); return; }
       setError(err.message || "Could not save this dog.");
     }
   };
@@ -96,6 +127,10 @@ function Intake() {
       <section className="intro-strip partner">
         <div>
           <h1>Answer questions for each dog!</h1>
+          <p className="helper-copy">
+            Logged in as <b>{session.partnerName}</b>.{" "}
+            <button type="button" className="link-action" onClick={onLogout}>Log out</button>
+          </p>
         </div>
         <div className="stat-block"><strong>{dogs.length}</strong><span>stored records</span></div>
       </section>
@@ -108,7 +143,6 @@ function Intake() {
           <div className="form-split">
             <div>
               <Field label="Dog name" value={partner.name} onChange={(v) => setField("name", v)} placeholder="Optional" />
-              <Field label="Shelter or pet shop" value={partner.shelter} onChange={(v) => setField("shelter", v)} placeholder="Required" />
               <Field label="Website to meet this pet" value={partner.contactUrl} onChange={(v) => setField("contactUrl", v)} placeholder="https://..." />
               <label className="field">
                 <span>Breed</span>
@@ -184,7 +218,7 @@ function Intake() {
         <aside className="panel database-panel">
           <div className="panel-head"><h2>Stored dog records</h2></div>
           {dogs.length === 0 ? (
-            <p className="helper-copy">The database is empty. Saved dogs will appear here.</p>
+            <p className="helper-copy">No dogs saved yet. Dogs you save will appear here.</p>
           ) : (
             <ul className="database-list">
               {dogs.map((d) => (

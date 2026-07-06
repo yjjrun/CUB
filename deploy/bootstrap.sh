@@ -33,6 +33,15 @@ fi
 install -d -o cub -g cub "$DATA_DIR"
 chown -R cub:cub "$APP_DIR"
 
+# One-time secret pepper for hashing partner access codes. Generated on first
+# provision and left untouched on redeploys (rotating it would invalidate every
+# partner's existing code). Lives outside the repo, alongside the SQLite data.
+if [ ! -f "$DATA_DIR/cub.env" ]; then
+  echo "CUB_CODE_PEPPER=$(python3 -c 'import secrets; print(secrets.token_hex(32))')" > "$DATA_DIR/cub.env"
+  chown cub:cub "$DATA_DIR/cub.env"
+  chmod 600 "$DATA_DIR/cub.env"
+fi
+
 # Build the React frontend into dist/ (served statically by nginx).
 sudo -u cub npm --prefix "$APP_DIR" ci
 sudo -u cub npm --prefix "$APP_DIR" run build

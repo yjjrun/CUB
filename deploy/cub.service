@@ -10,6 +10,9 @@ WorkingDirectory=/opt/cub
 Environment=HOST=127.0.0.1
 Environment=PORT=8000
 Environment=CUB_DATA_DIR=/var/lib/cub
+# CUB_CODE_PEPPER (hashes partner access codes) lives outside the repo;
+# bootstrap.sh generates it once into this file on first provision.
+EnvironmentFile=-/var/lib/cub/cub.env
 ExecStart=/usr/bin/python3 /opt/cub/server.py
 Restart=always
 RestartSec=3
