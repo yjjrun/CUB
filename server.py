@@ -172,6 +172,10 @@ EXERCISE_FIT_OPTIONS = ["low", "moderate", "moderateHigh", "high"]
 # names used by the frontend. HDB approval is this fixed list — never a size
 # judgement. Local mixed-breeds up to 55cm may qualify via Project ADORE.
 HDB_APPROVED_BREEDS = {
+    # Crosses of two approved breeds are also HDB-approved (official rule),
+    # covering Singapore's popular small hybrids:
+    "Cavachon", "Cavoodle (Cavapoo)", "Maltipoo", "Morkie", "Pomapoo",
+    "Poochon (Bichpoo)", "Schnoodle (Miniature)", "Shihpoo", "Yorkipoo",
     "Affenpinscher", "Australian Terrier", "Bichon Frise", "Bolognese",
     "Border Terrier", "Boston Terrier", "Brussels Griffon", "Cairn Terrier",
     "Cavalier King Charles Spaniel", "Cesky Terrier", "Chihuahua", "Chinese Crested",
@@ -204,17 +208,20 @@ SPECIFIED_PART2_BREEDS = {
     "Dogue de Bordeaux",
 }
 HIGH_EXERCISE_TERMS = [
-    "Cattle Dog", "Collie", "Husky", "Kelpie", "Malinois", "Pointer", "Retriever",
-    "Setter", "Shepherd", "Spaniel", "Tervuren", "Vizsla", "Weimaraner", "Working",
+    "Cattle Dog", "Collie", "Goldendoodle", "Husky", "Kelpie", "Labradoodle",
+    "Malinois", "Pointer", "Pomsky", "Retriever", "Setter", "Shepherd", "Spaniel",
+    "Tervuren", "Vizsla", "Weimaraner", "Working",
 ]
 MODERATE_HIGH_EXERCISE_TERMS = [
-    "Beagle", "Coonhound", "Dalmatian", "Elkhound", "Foxhound", "Hound", "Malamute",
-    "Mountain", "Ridgeback", "Samoyed", "Schnauzer", "Terrier", "Water Dog",
+    "Beagle", "Cockapoo", "Coonhound", "Dalmatian", "Elkhound", "Foxhound", "Hound",
+    "Malamute", "Mountain", "Ridgeback", "Samoyed", "Schnauzer", "Schnoodle",
+    "Terrier", "Water Dog",
 ]
 LOW_EXERCISE_TERMS = [
-    "Basset", "Bichon", "Bulldog", "Cavalier", "Chihuahua", "Chin", "Coton",
-    "French Bulldog", "Lhasa", "Maltese", "Mastiff", "Pekingese", "Pomeranian",
-    "Pug", "Shih Tzu", "Toy", "Yorkshire",
+    "Basset", "Bichon", "Bulldog", "Cavachon", "Cavalier", "Chihuahua", "Chin",
+    "Coton", "French Bulldog", "Lhasa", "Maltese", "Maltipoo", "Mastiff", "Morkie",
+    "Pekingese", "Pomapoo", "Pomeranian", "Poochon", "Pug", "Shih Tzu", "Shihpoo",
+    "Toy", "Yorkshire",
 ]
 
 

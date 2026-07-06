@@ -76,7 +76,9 @@ export const AKC_BREEDS = [
   "Carolina Dog",
   "Catahoula Leopard Dog",
   "Caucasian Shepherd Dog",
+  "Cavachon",
   "Cavalier King Charles Spaniel",
+  "Cavoodle (Cavapoo)",
   "Central Asian Shepherd Dog",
   "Cesky Terrier",
   "Chihuahua",
@@ -86,6 +88,7 @@ export const AKC_BREEDS = [
   "Chow Chow",
   "Cirneco dell'Etna",
   "Clumber Spaniel",
+  "Cockapoo",
   "Cocker Spaniel",
   "Collie",
   "Coton de Tulear",
@@ -125,6 +128,7 @@ export const AKC_BREEDS = [
   "Giant Schnauzer",
   "Glen of Imaal Terrier",
   "Golden Retriever",
+  "Goldendoodle",
   "Gordon Setter",
   "Grand Basset Griffon Vendeen",
   "Great Dane",
@@ -158,6 +162,7 @@ export const AKC_BREEDS = [
   "Komondor",
   "Kromfohrlander",
   "Kuvasz",
+  "Labradoodle",
   "Labrador Retriever",
   "Lagotto Romagnolo",
   "Lakeland Terrier",
@@ -168,6 +173,7 @@ export const AKC_BREEDS = [
   "Lhasa Apso",
   "Lowchen",
   "Maltese",
+  "Maltipoo",
   "Manchester Terrier",
   "Manchester Terrier (Toy)",
   "Mastiff",
@@ -175,6 +181,7 @@ export const AKC_BREEDS = [
   "Miniature Bull Terrier",
   "Miniature Pinscher",
   "Miniature Schnauzer",
+  "Morkie",
   "Mountain Cur",
   "Mudi",
   "Nederlandse Kooikerhondje",
@@ -199,7 +206,10 @@ export const AKC_BREEDS = [
   "Plott Hound",
   "Pointer",
   "Polish Lowland Sheepdog",
+  "Pomapoo",
   "Pomeranian",
+  "Pomsky",
+  "Poochon (Bichpoo)",
   "Pont-Audemer Spaniel",
   "Poodle (Miniature)",
   "Poodle (Standard)",
@@ -231,16 +241,19 @@ export const AKC_BREEDS = [
   "Samoyed",
   "Schapendoes",
   "Schipperke",
+  "Schnoodle (Miniature)",
   "Scottish Deerhound",
   "Scottish Terrier",
   "Sealyham Terrier",
   "Segugio Italiano",
   "Shetland Sheepdog",
   "Shiba Inu",
+  "Shihpoo",
   "Shih Tzu",
   "Shikoku Ken",
   "Siberian Husky",
   "Silky Terrier",
+  "Singapore Special (Local Mixed Breed)",
   "Skye Terrier",
   "Sloughi",
   "Slovakian Wirehaired Pointer",
@@ -283,6 +296,7 @@ export const AKC_BREEDS = [
   "Working Kelpie",
   "Xoloitzcuintli",
   "Yakutian Laika",
+  "Yorkipoo",
   "Yorkshire Terrier",
 ];
 
@@ -295,6 +309,17 @@ export const EXERCISE_FIT_OPTIONS = ["low", "moderate", "moderateHigh", "high"];
 // via Project ADORE.
 const HDB_APPROVED_BREEDS = new Set([
   "Affenpinscher",
+  // Crosses of two approved breeds are also HDB-approved (official rule),
+  // covering Singapore's popular small hybrids:
+  "Cavachon",
+  "Cavoodle (Cavapoo)",
+  "Maltipoo",
+  "Morkie",
+  "Pomapoo",
+  "Poochon (Bichpoo)",
+  "Schnoodle (Miniature)",
+  "Shihpoo",
+  "Yorkipoo",
   "Australian Terrier",
   "Bichon Frise",
   "Bolognese",
@@ -368,17 +393,20 @@ const SPECIFIED_PART2_BREEDS = new Set([
 ]);
 
 const HIGH_EXERCISE_TERMS = [
-  "Cattle Dog", "Collie", "Husky", "Kelpie", "Malinois", "Pointer", "Retriever",
-  "Setter", "Shepherd", "Spaniel", "Tervuren", "Vizsla", "Weimaraner", "Working",
+  "Cattle Dog", "Collie", "Goldendoodle", "Husky", "Kelpie", "Labradoodle",
+  "Malinois", "Pointer", "Pomsky", "Retriever", "Setter", "Shepherd", "Spaniel",
+  "Tervuren", "Vizsla", "Weimaraner", "Working",
 ];
 const MODERATE_HIGH_EXERCISE_TERMS = [
-  "Beagle", "Coonhound", "Dalmatian", "Elkhound", "Foxhound", "Hound", "Malamute",
-  "Mountain", "Ridgeback", "Samoyed", "Schnauzer", "Terrier", "Water Dog",
+  "Beagle", "Cockapoo", "Coonhound", "Dalmatian", "Elkhound", "Foxhound", "Hound",
+  "Malamute", "Mountain", "Ridgeback", "Samoyed", "Schnauzer", "Schnoodle",
+  "Terrier", "Water Dog",
 ];
 const LOW_EXERCISE_TERMS = [
-  "Basset", "Bichon", "Bulldog", "Cavalier", "Chihuahua", "Chin", "Coton",
-  "French Bulldog", "Lhasa", "Maltese", "Mastiff", "Pekingese", "Pomeranian",
-  "Pug", "Shih Tzu", "Toy", "Yorkshire",
+  "Basset", "Bichon", "Bulldog", "Cavachon", "Cavalier", "Chihuahua", "Chin",
+  "Coton", "French Bulldog", "Lhasa", "Maltese", "Maltipoo", "Mastiff", "Morkie",
+  "Pekingese", "Pomapoo", "Pomeranian", "Poochon", "Pug", "Shih Tzu", "Shihpoo",
+  "Toy", "Yorkshire",
 ];
 
 const TENDENCY_RULES = [
@@ -404,9 +432,10 @@ const TENDENCY_RULES = [
   {
     cluster: "Joyful Sparks",
     matches: [
-      "Barbet", "Bichon", "Cocker", "Doodle", "Havanese", "Labrador", "Lagotto",
-      "Papillon", "Pointer", "Poodle", "Retriever", "Setter", "Spaniel", "Vizsla",
-      "Water Dog",
+      "Barbet", "Bichon", "Cavoodle", "Cockapoo", "Cocker", "Doodle", "Havanese",
+      "Labrador", "Lagotto", "Maltipoo", "Morkie", "Papillon", "Pointer", "Pomapoo",
+      "Pomsky", "Poochon", "Poodle", "Retriever", "Schnoodle", "Setter", "Shihpoo",
+      "Spaniel", "Vizsla", "Water Dog", "Yorkipoo",
     ],
   },
   {
@@ -419,8 +448,8 @@ const TENDENCY_RULES = [
   {
     cluster: "Golden Hearts",
     matches: [
-      "Cavalier", "Collie", "Corgi", "Golden Retriever", "Kooikerhondje", "Maltese",
-      "Sheepdog", "Shih Tzu", "Toy Spaniel",
+      "Cavachon", "Cavalier", "Collie", "Corgi", "Golden Retriever", "Kooikerhondje",
+      "Maltese", "Sheepdog", "Shih Tzu", "Singapore Special", "Toy Spaniel",
     ],
   },
 ];
