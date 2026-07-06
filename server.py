@@ -664,6 +664,10 @@ def main() -> None:
         "recompute-care",
         help="Re-derive HDB approval, home fit, and exercise need for stored dogs.",
     )
+    subparsers.add_parser(
+        "list-partners",
+        help="List every partner account and the dogs each has added.",
+    )
 
     args = parser.parse_args()
     init_db()
@@ -680,6 +684,34 @@ def main() -> None:
         partner, code = create_partner(args.name, args.code)
         print(f"Created partner '{partner['name']}' (id={partner['id']}).")
         print(f"Access code (shown once, store it securely): {code}")
+        return
+
+    if args.command == "list-partners":
+        with sqlite3.connect(DB_PATH) as con:
+            con.row_factory = sqlite3.Row
+            partners = con.execute("SELECT * FROM partners ORDER BY name").fetchall()
+            dogs = con.execute(
+                "SELECT partner_id, shelter, name, breed, cluster, status, created_at "
+                "FROM dogs ORDER BY created_at DESC"
+            ).fetchall()
+        by_partner: dict[str, list] = {}
+        unowned = []
+        for dog in dogs:
+            if dog["partner_id"]:
+                by_partner.setdefault(dog["partner_id"], []).append(dog)
+            else:
+                unowned.append(dog)
+        if not partners:
+            print("No partner accounts yet. Create one with: server.py add-partner --name \"...\"")
+        for p in partners:
+            owned = by_partner.get(p["id"], [])
+            print(f"\n{p['name']}  (created {p['created_at'][:10]}, {len(owned)} dog(s))")
+            for dog in owned:
+                print(f"  - {dog['name'] or 'Unnamed'} · {dog['breed']} · {dog['cluster']} · {dog['status']} · added {dog['created_at'][:10]}")
+        if unowned:
+            print("\nDogs with no partner account (added before per-partner logins existed):")
+            for dog in unowned:
+                print(f"  - {dog['name'] or 'Unnamed'} · {dog['breed']} · listed under shelter '{dog['shelter']}' · added {dog['created_at'][:10]}")
         return
 
     if args.command == "recompute-care":
