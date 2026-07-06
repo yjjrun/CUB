@@ -1719,6 +1719,104 @@ input[type="range"] {
     width: min(360px, 96vw);
   }
 
+  .hero-dog-visual .hero-preview-card {
+    border-radius: 14px;
+    box-shadow: 0 14px 28px rgba(74, 36, 17, 0.14);
+  }
+
+  .hero-dog-visual .compatibility-card {
+    top: 34px;
+    right: 2px;
+    width: min(132px, 39vw);
+    gap: 3px;
+    padding: 10px;
+  }
+
+  .hero-dog-visual .compatibility-card span {
+    font-size: 0.62rem;
+  }
+
+  .hero-dog-visual .compatibility-card strong {
+    font-size: 1.9rem;
+  }
+
+  .hero-dog-visual .compatibility-card strong i {
+    font-size: 0.78rem;
+  }
+
+  .hero-dog-visual .compatibility-card b {
+    font-size: 0.76rem;
+  }
+
+  .hero-dog-visual .compatibility-card p {
+    margin: 0 0 4px;
+    font-size: 0.62rem;
+    line-height: 1.25;
+  }
+
+  .hero-dog-visual .mini-meter,
+  .hero-dog-visual .dog-card dd {
+    height: 5px;
+  }
+
+  .hero-dog-visual .dog-card {
+    left: 2px;
+    bottom: 66px;
+    width: min(168px, 49vw);
+    grid-template-columns: 34px 1fr;
+    gap: 6px 8px;
+    padding: 10px;
+  }
+
+  .hero-dog-visual .dog-card > img {
+    width: 34px;
+    height: 34px;
+  }
+
+  .hero-dog-visual .dog-card h3,
+  .hero-dog-visual .lifestyle-card h3 {
+    font-size: 0.78rem;
+  }
+
+  .hero-dog-visual .dog-card h3 small {
+    margin-left: 3px;
+    padding: 1px 4px;
+    font-size: 0.5rem;
+  }
+
+  .hero-dog-visual .dog-card p,
+  .hero-dog-visual .dog-card span,
+  .hero-dog-visual .dog-card dt,
+  .hero-dog-visual .lifestyle-card li {
+    font-size: 0.56rem;
+  }
+
+  .hero-dog-visual .dog-card dl {
+    gap: 5px;
+    margin-top: 5px;
+  }
+
+  .hero-dog-visual .dog-card dl div {
+    grid-template-columns: 56px 1fr;
+    gap: 5px;
+  }
+
+  .hero-dog-visual .lifestyle-card {
+    right: 2px;
+    bottom: 8px;
+    width: min(150px, 44vw);
+    gap: 7px;
+    padding: 10px;
+  }
+
+  .hero-dog-visual .lifestyle-card ul {
+    gap: 5px;
+  }
+
+  .hero-dog-visual .lifestyle-card li::before {
+    margin-right: 4px;
+  }
+
   .match-preview {
     min-height: 640px;
     width: 100%;
