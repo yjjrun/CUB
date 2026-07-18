@@ -993,9 +993,16 @@ img {
   display: flex;
   width: max-content;
   align-items: center;
-  gap: 44px;
   padding: 20px 0;
   animation: partners-scroll 30s linear infinite;
+}
+
+.partners-group {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 44px;
+  padding-right: 44px;
 }
 
 .partner-logo {
@@ -1015,7 +1022,7 @@ img {
 
 @keyframes partners-scroll {
   from { transform: translateX(0); }
-  to { transform: translateX(calc(-50% - 22px)); }
+  to { transform: translateX(-50%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1025,6 +1032,11 @@ img {
     flex-wrap: wrap;
     justify-content: center;
     animation: none;
+  }
+
+  .partners-group {
+    flex-wrap: wrap;
+    justify-content: center;
   }
 }
 

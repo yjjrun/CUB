@@ -5,7 +5,7 @@ const PARTNERS = [
 ];
 
 export default function Partners() {
-  const loop = [...PARTNERS, ...PARTNERS];
+  const marqueePartners = [...PARTNERS, ...PARTNERS];
 
   return (
     <section className="partners-strip" aria-labelledby="partners-title">
@@ -13,9 +13,13 @@ export default function Partners() {
         <h2 id="partners-title">Our Partners</h2>
         <div className="partners-marquee" aria-label="Partner logos">
           <div className="partners-track">
-            {loop.map((partner, index) => (
-              <div className="partner-logo" key={`${partner.name}-${index}`}>
-                <img src={partner.logo} alt={partner.name} loading="lazy" />
+            {[0, 1].map((group) => (
+              <div className="partners-group" key={group} aria-hidden={group === 1 ? "true" : undefined}>
+                {marqueePartners.map((partner, index) => (
+                  <div className="partner-logo" key={`${partner.name}-${group}-${index}`}>
+                    <img src={partner.logo} alt={group === 0 ? partner.name : ""} />
+                  </div>
+                ))}
               </div>
             ))}
           </div>
