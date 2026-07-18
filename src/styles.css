@@ -936,12 +936,12 @@ img {
 
 .team-photo-image--jiarun {
   transform: scale(1.75);
-  transform-origin: 50% 54%;
+  transform-origin: 50% 41%;
 }
 
 .team-photo-image--ethan {
   transform: scale(1.55);
-  transform-origin: 57% 52%;
+  transform-origin: 60% 43%;
 }
 
 .team-id {
