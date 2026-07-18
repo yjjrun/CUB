@@ -293,19 +293,25 @@ img {
   font-weight: 900;
 }
 
+.trait-marquee {
+  max-width: 100%;
+  overflow: hidden;
+}
+
 .trait-list {
   display: flex;
-  flex-wrap: wrap;
+  width: max-content;
+  flex-wrap: nowrap;
   gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
+  animation: trait-scroll 18s linear infinite;
 }
 
 .trait-list li {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
   min-height: 36px;
   padding: 6px 13px;
   border: 1px solid rgba(218, 200, 184, 0.9);
@@ -315,54 +321,41 @@ img {
   font-size: 0.86rem;
   font-weight: 800;
   line-height: 1.1;
+  white-space: nowrap;
   box-shadow: 0 4px 12px rgba(74, 36, 17, 0.06);
 }
 
-.trait-list li span {
-  display: grid;
-  place-items: center;
-  min-width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--sage-light);
-  color: var(--sage);
-  font-size: 0.62rem;
-  font-weight: 950;
-}
-
-.trait-list li.trait-energy span {
-  background: var(--gold-soft);
+.trait-list li.trait-energy {
   color: var(--gold);
 }
 
-.trait-list li.trait-sociability span {
-  background: #e3ebe0;
+.trait-list li.trait-sociability {
   color: #536b3e;
 }
 
-.trait-list li.trait-trainability span {
-  background: #efe0d1;
+.trait-list li.trait-trainability {
   color: #8a5a34;
 }
 
-.trait-list li.trait-fearfulness span {
-  background: #dceaf5;
+.trait-list li.trait-fearfulness {
   color: #426f8f;
 }
 
-.trait-list li.trait-attachment span {
-  background: #f4dfea;
+.trait-list li.trait-attachment {
   color: #a24a75;
 }
 
-.trait-list li.trait-separation span {
-  background: #f8e1c2;
+.trait-list li.trait-separation {
   color: #c56d21;
 }
 
-.trait-list li.trait-sensitivity span {
-  background: #f0d9d5;
+.trait-list li.trait-sensitivity {
   color: #9a4038;
+}
+
+@keyframes trait-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-50% - 5px)); }
 }
 
 .research-note {
@@ -1026,6 +1019,7 @@ img {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .trait-list,
   .partners-track {
     width: auto;
     flex-wrap: wrap;
@@ -1816,10 +1810,6 @@ input[type="range"] {
 
   .hero-actions {
     order: 6;
-  }
-
-  .trait-list {
-    gap: 8px;
   }
 
   .trait-list li {

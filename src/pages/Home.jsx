@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-
 const PET_LINKS = [
   { label: "Pet News", description: "Heart-warming animal stories and the latest dog news.", url: "https://www.dailypaws.com/", host: "dailypaws.com", image: "/assets/link-news.png" },
   { label: "Food & Snacks", description: "Shop wholesome meals and snacks for every life stage.", url: "https://www.bombom.com/", host: "bombom.com", image: "/assets/link-food-snacks.png" },
@@ -8,38 +6,17 @@ const PET_LINKS = [
 ];
 
 const TRAIT_CHIPS = [
-  { label: "Energy", mark: "En", tone: "energy" },
-  { label: "Sociability", mark: "So", tone: "sociability" },
-  { label: "Trainability", mark: "Tr", tone: "trainability" },
-  { label: "Fearfulness", mark: "Fe", tone: "fearfulness" },
-  { label: "Attachment", mark: "At", tone: "attachment" },
-  { label: "Separation behaviour", mark: "Sb", tone: "separation" },
-  { label: "Sensitivity", mark: "Sn", tone: "sensitivity" },
+  { label: "Energy", tone: "energy" },
+  { label: "Sociability", tone: "sociability" },
+  { label: "Trainability", tone: "trainability" },
+  { label: "Fearfulness", tone: "fearfulness" },
+  { label: "Attachment", tone: "attachment" },
+  { label: "Separation behaviour", tone: "separation" },
+  { label: "Sensitivity", tone: "sensitivity" },
 ];
 
-function getRandomTraitIndex(currentIndex) {
-  if (TRAIT_CHIPS.length <= 1) return 0;
-
-  let nextIndex = currentIndex;
-  while (nextIndex === currentIndex) {
-    nextIndex = Math.floor(Math.random() * TRAIT_CHIPS.length);
-  }
-
-  return nextIndex;
-}
-
 export default function Home({ navigate }) {
-  const [traitIndex, setTraitIndex] = useState(() => getRandomTraitIndex(-1));
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setTraitIndex((currentIndex) => getRandomTraitIndex(currentIndex));
-    }, 1500);
-
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const activeTrait = TRAIT_CHIPS[traitIndex];
+  const traitLoop = [...TRAIT_CHIPS, ...TRAIT_CHIPS];
 
   return (
     <main className="screen home-screen">
@@ -53,11 +30,16 @@ export default function Home({ navigate }) {
             <div className="proof-heading">
               <p>Our matching algorithm profiles each dog across key behavioural traits:</p>
             </div>
-            <ul className="trait-list" aria-label="Dog behaviour traits">
-              <li key={activeTrait.label} className={`trait-${activeTrait.tone}`}>
-                <span aria-hidden="true">{activeTrait.mark}</span>{activeTrait.label}
-              </li>
-            </ul>
+            <div
+              className="trait-marquee"
+              aria-label={`Dog behaviour traits: ${TRAIT_CHIPS.map((trait) => trait.label).join(", ")}`}
+            >
+              <ul className="trait-list" aria-hidden="true">
+                {traitLoop.map((trait, index) => (
+                  <li key={`${trait.label}-${index}`} className={`trait-${trait.tone}`}>{trait.label}</li>
+                ))}
+              </ul>
+            </div>
             <div className="research-note">
               <p>
                 This approach is informed by established canine behaviour research and draws on large-scale
