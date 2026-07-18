@@ -4,6 +4,7 @@ export default function TeamPage() {
       name: "Jiarun",
       role: "Founder & Head of Research",
       photo: "/assets/team/jiarun.png",
+      photoClass: "team-photo-image--jiarun",
       bio:
         "As a student passionate about both cognitive and data science, I hope to build practical tools to tackle real-world problems and improve how humans make decisions. In the process of raising two dogs with vastly different personalities, I learnt that successful pet ownership depends not simply on choosing the right breed, but on understanding the unique behavioural traits, needs and temperament of each individual dog. This inspired me to create CUB: a platform designed to help every dog find a loving and compatible home while encouraging more informed and responsible pet ownership.",
     },
@@ -18,6 +19,7 @@ export default function TeamPage() {
       name: "Ethan",
       role: "Head of Outreach",
       photo: "/assets/team/ethan.png",
+      photoClass: "team-photo-image--ethan",
       bio:
         "Biology fascinates me because no two minds are shaped in quite the same way. Genetics, environment and experience combine to make every dog's temperament unique. Through CUB, I hope to use behavioural data to match dogs with suitable owners, moving beyond guesswork toward pairings built on compatibility. I also want to help owners and their dogs grow together through personalised training, enrichment and long-term support.",
     },
@@ -40,7 +42,14 @@ export default function TeamPage() {
         {team.map((member) => (
           <article className="team-row" key={member.name}>
             <div className="team-person">
-              <img className="team-photo" src={member.photo} alt={`${member.name} from the CUB team`} loading="lazy" />
+              <span className="team-photo">
+                <img
+                  className={`team-photo-image ${member.photoClass || ""}`.trim()}
+                  src={member.photo}
+                  alt={`${member.name} from the CUB team`}
+                  loading="lazy"
+                />
+              </span>
               <div className="team-id">
                 <h2>{member.name}</h2>
                 <p className="team-role">{member.role}</p>

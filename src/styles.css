@@ -918,13 +918,30 @@ img {
 }
 
 .team-photo {
+  display: block;
+  overflow: hidden;
   width: 138px;
   height: 138px;
   border: 1px solid rgba(218, 200, 184, 0.86);
   border-radius: 50%;
+  box-shadow: 0 10px 24px rgba(74, 36, 17, 0.12);
+}
+
+.team-photo-image {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   object-position: center;
-  box-shadow: 0 10px 24px rgba(74, 36, 17, 0.12);
+}
+
+.team-photo-image--jiarun {
+  transform: scale(1.75);
+  transform-origin: 50% 54%;
+}
+
+.team-photo-image--ethan {
+  transform: scale(1.55);
+  transform-origin: 57% 52%;
 }
 
 .team-id {
