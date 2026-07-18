@@ -1,7 +1,6 @@
 const PARTNERS = [
   { name: "University of Pennsylvania", logo: "/assets/partners/penn.png" },
   { name: "National University of Singapore", logo: "/assets/partners/nus.png" },
-  { name: "SPCA Singapore", logo: "/assets/partners/spca-singapore.png" },
   { name: "National Parks Board", logo: "/assets/partners/national-parks.png" },
 ];
 

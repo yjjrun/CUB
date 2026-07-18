@@ -35,7 +35,7 @@ const SEO = {
   team: {
     path: "/about/team",
     title: "Our Team | CUB",
-    description: "Meet the people and partners behind CUB's behaviour-informed dog adoption matching platform.",
+    description: "Meet the student team behind CUB's behaviour-informed dog adoption matching platform.",
   },
   admin: {
     path: "/admin",

@@ -916,6 +916,14 @@ img {
   line-height: 1.35;
 }
 
+.team-row .team-role {
+  margin-top: 6px;
+  color: var(--sage);
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .team-row p {
   margin: 0;
   color: var(--mocha);
