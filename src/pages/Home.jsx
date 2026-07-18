@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 const PET_LINKS = [
   { label: "Pet News", description: "Heart-warming animal stories and the latest dog news.", url: "https://www.dailypaws.com/", host: "dailypaws.com", image: "/assets/link-news.png" },
   { label: "Food & Snacks", description: "Shop wholesome meals and snacks for every life stage.", url: "https://www.bombom.com/", host: "bombom.com", image: "/assets/link-food-snacks.png" },
@@ -15,7 +17,30 @@ const TRAIT_CHIPS = [
   { label: "Sensitivity", mark: "Sn", tone: "sensitivity" },
 ];
 
+function getRandomTraitIndex(currentIndex) {
+  if (TRAIT_CHIPS.length <= 1) return 0;
+
+  let nextIndex = currentIndex;
+  while (nextIndex === currentIndex) {
+    nextIndex = Math.floor(Math.random() * TRAIT_CHIPS.length);
+  }
+
+  return nextIndex;
+}
+
 export default function Home({ navigate }) {
+  const [traitIndex, setTraitIndex] = useState(() => getRandomTraitIndex(-1));
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setTraitIndex((currentIndex) => getRandomTraitIndex(currentIndex));
+    }, 1500);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const activeTrait = TRAIT_CHIPS[traitIndex];
+
   return (
     <main className="screen home-screen">
       <section className="home-hero">
@@ -29,9 +54,9 @@ export default function Home({ navigate }) {
               <p>Our matching algorithm profiles each dog across key behavioural traits:</p>
             </div>
             <ul className="trait-list" aria-label="Dog behaviour traits">
-              {TRAIT_CHIPS.map((trait) => (
-                <li key={trait.label} className={`trait-${trait.tone}`}><span aria-hidden="true">{trait.mark}</span>{trait.label}</li>
-              ))}
+              <li key={activeTrait.label} className={`trait-${activeTrait.tone}`}>
+                <span aria-hidden="true">{activeTrait.mark}</span>{activeTrait.label}
+              </li>
             </ul>
             <div className="research-note">
               <p>
