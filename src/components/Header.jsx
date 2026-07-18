@@ -21,6 +21,7 @@ export default function Header({ route, navigate }) {
       <nav className="nav-pills" aria-label="Site areas">
         <button className={route === "home" ? "active" : ""} onClick={() => navigate("home")}>Home</button>
         <button className={route === "match" ? "active" : ""} onClick={() => navigate("match")}>For adopters</button>
+        <button className={route === "care" ? "active" : ""} onClick={() => navigate("care")}>CUB Care</button>
         <button className={route === "partner" ? "active" : ""} onClick={() => navigate("partner")}>For shelters</button>
         <div className="nav-menu">
           <button className={aboutActive ? "active" : ""} type="button">About us</button>

@@ -54,6 +54,7 @@ points at a persistent disk so data survives restarts and redeploys.
 
 - `/` — public home page (hero + pet-resource links)
 - `/match` — public match quiz and results
+- `/care` — CUB Care prototype: post-adoption dashboard (care plan, emotion scan, Ask CUB chatbot); sample data lives in `src/lib/care.js`
 - `/shelter` — locked shelter question/intake page
 - `/partner` — old alias for the shelter intake page
 

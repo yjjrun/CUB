@@ -778,7 +778,7 @@ class CUBHandler(BaseHTTPRequestHandler):
         return json.loads(raw or "{}")
 
     def serve_static(self, raw_path: str) -> None:
-        if raw_path in {"/", "/match", "/partner", "/shelter", "/faq", "/faqs"}:
+        if raw_path in {"/", "/care", "/match", "/partner", "/shelter", "/faq", "/faqs"}:
             target = ROOT / "index.html"
         else:
             safe_path = unquote(raw_path).lstrip("/")

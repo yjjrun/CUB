@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AdminPage from "./pages/AdminPage.jsx";
+import CarePage from "./pages/CarePage.jsx";
 import Header from "./components/Header.jsx";
 import Partners from "./components/Partners.jsx";
 import FaqPage from "./pages/FaqPage.jsx";
@@ -42,6 +43,11 @@ const SEO = {
     title: "Admin | CUB",
     description: "Private CUB administration view.",
     robots: "noindex,nofollow",
+  },
+  care: {
+    path: "/care",
+    title: "CUB Care | Daily Care for Your Dog",
+    description: "CUB Care helps adopters look after their dog with personalised nutrition, exercise, enrichment, and health guidance, plus an emotion scan and care chatbot.",
   },
 };
 
@@ -96,6 +102,7 @@ function setRouteJsonLd(route, url) {
 
 function routeFromPath(pathname) {
   if (pathname === "/admin") return "admin";
+  if (pathname === "/care") return "care";
   if (pathname === "/match") return "match";
   if (pathname === "/partner" || pathname === "/shelter") return "partner";
   if (pathname === "/faq" || pathname === "/faqs" || pathname === "/about/faq") return "faq";
@@ -138,6 +145,8 @@ export default function App() {
             ? "/about/team"
             : next === "admin"
               ? "/admin"
+              : next === "care"
+                ? "/care"
             : "/";
     window.history.pushState({}, "", path);
     setRoute(next);
@@ -153,7 +162,8 @@ export default function App() {
       {route === "faq" && <FaqPage />}
       {route === "team" && <TeamPage />}
       {route === "admin" && <AdminPage />}
-      <Partners />
+      {route === "care" && <CarePage />}
+      {route !== "care" && <Partners />}
     </>
   );
 }
