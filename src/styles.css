@@ -912,16 +912,16 @@ img {
 
 .team-person {
   display: grid;
-  grid-template-columns: 104px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: 138px minmax(0, 1fr);
+  gap: 22px;
   align-items: center;
 }
 
 .team-photo {
-  width: 104px;
-  aspect-ratio: 4 / 5;
+  width: 138px;
+  height: 138px;
   border: 1px solid rgba(218, 200, 184, 0.86);
-  border-radius: 8px;
+  border-radius: 50%;
   object-fit: cover;
   object-position: center;
   box-shadow: 0 10px 24px rgba(74, 36, 17, 0.12);
