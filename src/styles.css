@@ -903,10 +903,32 @@ img {
 
 .team-row {
   display: grid;
-  grid-template-columns: minmax(220px, 0.42fr) minmax(0, 1fr);
+  grid-template-columns: minmax(310px, 0.46fr) minmax(0, 1fr);
   gap: 28px;
-  padding: 22px 0;
+  align-items: start;
+  padding: 26px 0;
   border-bottom: 1px solid rgba(74, 36, 17, 0.16);
+}
+
+.team-person {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.team-photo {
+  width: 104px;
+  aspect-ratio: 4 / 5;
+  border: 1px solid rgba(218, 200, 184, 0.86);
+  border-radius: 8px;
+  object-fit: cover;
+  object-position: center;
+  box-shadow: 0 10px 24px rgba(74, 36, 17, 0.12);
+}
+
+.team-id {
+  min-width: 0;
 }
 
 .team-row h2 {
@@ -917,10 +939,10 @@ img {
 }
 
 .team-row .team-role {
-  margin-top: 6px;
-  color: var(--sage);
-  font-size: 0.9rem;
-  font-weight: 800;
+  margin-top: 8px;
+  color: var(--coffee);
+  font-size: 1.04rem;
+  font-weight: 900;
   line-height: 1.35;
 }
 
