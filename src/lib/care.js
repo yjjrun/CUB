@@ -3,9 +3,11 @@
 // Everything user-specific in the /care prototype lives here so it can later
 // be replaced by real user data and real model endpoints:
 // - SAMPLE_DOG mirrors Lily, the dog featured on the homepage hero.
-// - analyzeDogImage() is a DEMO analyser (no real computer vision) — swap its
-//   body for a fetch() to a model endpoint when one exists.
-// - askCub() is a DEMO chatbot with branching canned answers — swap for a
+// - analyzeDogImage() uses real on-device object detection (src/lib/vision.js)
+//   to verify a dog is in frame and how much of it is visible, but the
+//   emotional read itself is still a demo — swap it for a behaviour-model
+//   endpoint when one exists.
+// - askCub() is a DEMO chatbot with scored canned answers — swap for a
 //   server-side AI endpoint when one exists. Never put API keys here.
 
 // ---------------------------------------------------------------------------
@@ -131,15 +133,26 @@ export const WEEKLY_INSIGHTS = {
 };
 
 // ---------------------------------------------------------------------------
-// Emotion Scan — DEMO analyser only (no real computer vision).
-// Replace analyzeDogImage() with a real model endpoint to go beyond the demo.
+// Emotion Scan — hybrid analyser.
+// Real on-device object detection (src/lib/vision.js) decides WHAT is in the
+// photo (dog / person / other / nothing) and how much of the dog is visible.
+// The emotional read itself is still a demo: signals are drawn only from body
+// parts the detector confirmed are in frame. Swap pickMood() for a real
+// behaviour-model endpoint to go beyond the demo.
 // ---------------------------------------------------------------------------
 
+// Each signal is tagged with the body region it describes so partial photos
+// (e.g. face-only close-ups, tail out of frame) never cite invisible parts.
 export const SCAN_RESULTS = [
   {
     mood: "Relaxed",
     confidence: "moderate",
-    signals: ["Soft, open mouth", "Neutral ear position", "Loose body posture", "Tail at rest"],
+    signals: [
+      { part: "face", text: "Soft, open mouth" },
+      { part: "face", text: "Neutral ear position" },
+      { part: "body", text: "Loose body posture" },
+      { part: "tail", text: "Tail at rest" },
+    ],
     explanation:
       "CUB noticed signals that may suggest Lily is at ease — a loose posture and soft face usually accompany a comfortable dog.",
     steps: [
@@ -151,7 +164,12 @@ export const SCAN_RESULTS = [
   {
     mood: "Playful",
     confidence: "moderate",
-    signals: ["Play-bow posture", "Wide relaxed mouth", "Bouncy weight shifts", "Tail mid-height, sweeping"],
+    signals: [
+      { part: "body", text: "Play-bow posture" },
+      { part: "face", text: "Wide relaxed mouth" },
+      { part: "body", text: "Bouncy weight shifts" },
+      { part: "tail", text: "Tail mid-height, sweeping" },
+    ],
     explanation:
       "CUB noticed signals that may suggest an invitation to play — bouncy, loose movement is how dogs signal friendly intent.",
     steps: [
@@ -163,7 +181,12 @@ export const SCAN_RESULTS = [
   {
     mood: "Alert",
     confidence: "low",
-    signals: ["Ears forward", "Weight shifted ahead", "Closed mouth", "Fixed gaze"],
+    signals: [
+      { part: "face", text: "Ears forward" },
+      { part: "body", text: "Weight shifted ahead" },
+      { part: "face", text: "Closed mouth" },
+      { part: "face", text: "Fixed gaze" },
+    ],
     explanation:
       "CUB noticed signals that may suggest focused attention on something in the environment. Alertness is normal, but frequent intense fixation can build stress.",
     steps: [
@@ -176,7 +199,12 @@ export const SCAN_RESULTS = [
   {
     mood: "Anxious",
     confidence: "low",
-    signals: ["Ears pulled back", "Lip licking", "Lowered tail", "Weight shifted away"],
+    signals: [
+      { part: "face", text: "Ears pulled back" },
+      { part: "face", text: "Lip licking" },
+      { part: "tail", text: "Lowered tail" },
+      { part: "body", text: "Weight shifted away" },
+    ],
     explanation:
       "CUB noticed signals that may suggest unease. These body-language cues often appear when a dog wants more distance from something.",
     steps: [
@@ -189,7 +217,12 @@ export const SCAN_RESULTS = [
   {
     mood: "Uncomfortable",
     confidence: "uncertain",
-    signals: ["Tense facial muscles", "Stiff posture", "Repeated position shifts", "Tucked tail"],
+    signals: [
+      { part: "face", text: "Tense facial muscles" },
+      { part: "body", text: "Stiff posture" },
+      { part: "body", text: "Repeated position shifts" },
+      { part: "tail", text: "Tucked tail" },
+    ],
     explanation:
       "CUB noticed signals that may suggest physical discomfort rather than an emotion. Stiffness and restlessness sometimes accompany pain.",
     steps: [
@@ -201,7 +234,12 @@ export const SCAN_RESULTS = [
   {
     mood: "Tired",
     confidence: "moderate",
-    signals: ["Heavy eyelids", "Slow responses", "Seeking rest spots", "Long settled posture"],
+    signals: [
+      { part: "face", text: "Heavy eyelids" },
+      { part: "face", text: "Slow responses" },
+      { part: "body", text: "Seeking rest spots" },
+      { part: "body", text: "Long settled posture" },
+    ],
     explanation:
       "CUB noticed signals that may suggest Lily needs rest — normal after exercise, but worth watching if it seems out of proportion to her day.",
     steps: [
@@ -212,16 +250,102 @@ export const SCAN_RESULTS = [
   },
 ];
 
-// Deterministic pick so the same image gives the same demo result.
-export async function analyzeDogImage(imageBlob) {
+const CONFIDENCE_DOWNGRADE = { moderate: "low", low: "uncertain", uncertain: "uncertain" };
+
+// Deterministic demo pick so the same image gives the same mood.
+async function hashBlob(imageBlob) {
   const buffer = await imageBlob.arrayBuffer();
   const bytes = new Uint8Array(buffer);
   let hash = 0;
   const step = Math.max(1, Math.floor(bytes.length / 512));
   for (let i = 0; i < bytes.length; i += step) hash = (hash * 31 + bytes[i]) >>> 0;
-  // Simulated processing delay so the scanning animation reads naturally.
-  await new Promise((resolve) => setTimeout(resolve, 2600));
-  return SCAN_RESULTS[hash % SCAN_RESULTS.length];
+  return hash;
+}
+
+function buildDogResult(base, framing) {
+  const partial = framing?.partial ?? false;
+  const weakDetection = framing ? framing.score < 0.6 : false;
+  const visibleParts = partial ? new Set(["face", "body"]) : new Set(["face", "body", "tail"]);
+  const signals = base.signals
+    .filter((signal) => visibleParts.has(signal.part))
+    .map((signal) => signal.text);
+
+  let confidence = base.confidence;
+  if (partial || weakDetection) confidence = CONFIDENCE_DOWNGRADE[confidence];
+
+  const notes = [];
+  if (partial) {
+    notes.push(
+      "Only part of the body is in frame, so tail and full-posture signals were not assessed. A photo showing the whole dog gives a fuller read.",
+    );
+  }
+  if (weakDetection) {
+    notes.push("The dog was hard to make out in this photo — better lighting or a closer shot would help.");
+  }
+
+  return { kind: "dog", ...base, signals, confidence, notes };
+}
+
+export async function analyzeDogImage(imageBlob) {
+  const started = Date.now();
+  // Keep the scanning animation on screen long enough to read, even when
+  // detection is fast; the first scan is slower while the model downloads.
+  const minDelay = async () => {
+    const remaining = 2200 - (Date.now() - started);
+    if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
+  };
+
+  let detection = null;
+  try {
+    const { detectSubjects, assessDogFraming } = await import("./vision.js");
+    const subjects = await detectSubjects(imageBlob);
+    detection = { subjects, assessDogFraming };
+  } catch {
+    // Model failed to load (e.g. offline) — fall back to the pure demo pick,
+    // clearly labelled for the user.
+    const hash = await hashBlob(imageBlob);
+    await minDelay();
+    const base = SCAN_RESULTS[hash % SCAN_RESULTS.length];
+    const result = buildDogResult(base, null);
+    result.notes = ["The on-device detection model couldn't load, so this is an unverified demo read."];
+    return result;
+  }
+
+  const { subjects, assessDogFraming } = detection;
+  await minDelay();
+
+  if (!subjects.dog) {
+    if (subjects.person) {
+      return {
+        kind: "person",
+        message: "That looks like a person, not a dog.",
+        detail:
+          "CUB reads canine body language only — human expressions work quite differently. Point the camera at Lily and try again.",
+      };
+    }
+    if (subjects.otherAnimal) {
+      return {
+        kind: "other-animal",
+        message: `That looks like a ${subjects.otherAnimal.class}, not a dog.`,
+        detail: "CUB's body-language guide is dog-specific, so it can't read this friend. Try a photo of Lily instead.",
+      };
+    }
+    return {
+      kind: "none",
+      message: "CUB couldn't find a dog in this photo.",
+      detail:
+        "Try a clearer, closer shot with good lighting — ideally with Lily's face and body visible and not too far from the camera.",
+    };
+  }
+
+  const framing = assessDogFraming(subjects.dog, subjects.imageWidth, subjects.imageHeight);
+  const hash = await hashBlob(imageBlob);
+  const base = SCAN_RESULTS[hash % SCAN_RESULTS.length];
+  const result = buildDogResult(base, framing);
+  if (subjects.person) {
+    result.notes.push("A person is also in frame — signals were read from the dog only.");
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -236,9 +360,13 @@ export const STARTER_QUESTIONS = [
   "Does this behaviour need a vet?",
 ];
 
+// Each topic lists strong keywords (clearly about this topic) and weak ones
+// (supporting context). A reply is only used when the scored match is solid;
+// otherwise the bot admits it doesn't know rather than guessing.
 const CHAT_RESPONSES = [
   {
-    match: /pac(e|ing)|restless|night|sleep|settle/i,
+    strong: ["pacing", "pace", "paces", "restless", "settle", "cant sleep", "wont sleep", "wandering"],
+    weak: ["night", "sleep", "evening", "bed", "bedtime", "awake"],
     reply:
       "Night pacing in a young dog like Lily usually comes down to one of a few things:\n\n" +
       "• Unspent energy — at 2 years old with high energy (78/100), a day light on exercise often shows up at night.\n" +
@@ -249,7 +377,8 @@ const CHAT_RESPONSES = [
       "⚠ See a vet if pacing comes with panting at rest, whining, disorientation, or it starts suddenly and persists — restlessness can occasionally signal pain or digestive discomfort.",
   },
   {
-    match: /exercise|walk|energy|active|tire/i,
+    strong: ["exercise", "walk", "walks", "walking", "zoomies", "hyper", "run", "running"],
+    weak: ["energy", "active", "tired", "tire", "minutes", "daily", "enough"],
     reply:
       "For Lily — a 2-year-old, 24kg retriever mix with high energy — a good daily target is about 75 minutes of movement:\n\n" +
       "• 30-minute morning walk (let her sniff — it's mental work too)\n" +
@@ -259,7 +388,8 @@ const CHAT_RESPONSES = [
       "Her care plan already includes both walks and a play burst — ticking them off daily is exactly the right rhythm. If she still has zoomies at 10pm, add 10 minutes of training before bed; thinking tires dogs as much as running.",
   },
   {
-    match: /food|eat|refus|appetite|meal|hungry/i,
+    strong: ["refusing food", "not eating", "wont eat", "won't eat", "refuses", "appetite", "skipping meals", "picky", "feed", "feeding", "diet", "how much food", "portion"],
+    weak: ["food", "eat", "eating", "meal", "meals", "hungry", "kibble", "bowl", "dinner", "breakfast", "grams"],
     reply:
       "A skipped meal now and then is common; a pattern is worth attention. For Lily, work through this order:\n\n" +
       "1. Rule out treats — if she had chews or table scraps today, mild refusal is often just calories already met.\n" +
@@ -270,7 +400,8 @@ const CHAT_RESPONSES = [
       "⚠ See a vet if she refuses food for more than 24 hours, or refusal comes with vomiting, lethargy, or drooling — those need professional eyes promptly.",
   },
   {
-    match: /enrich|game|bored|toy|puzzle|mental|activit/i,
+    strong: ["enrichment", "bored", "boredom", "puzzle", "mental stimulation", "activity today", "games"],
+    weak: ["game", "toy", "toys", "play", "mental", "activity", "stimulation", "try", "fun"],
     reply:
       "Great instinct — enrichment is where Lily's profile really shines (sociability 88/100, trainability 72/100). Today's suggestion:\n\n" +
       "🧩 Scatter feeding upgrade: measure out part of her dinner, scatter it in the grass or a snuffle mat, and let her hunt. Ten minutes of sniffing is roughly as tiring as a 30-minute walk.\n\n" +
@@ -282,7 +413,8 @@ const CHAT_RESPONSES = [
       "I've noted a snuffle-mat session in today's care plan — tick it off when you're done!",
   },
   {
-    match: /vet|sick|ill|worry|concern|emergency|hurt|limp|pain/i,
+    strong: ["vet", "veterinarian", "emergency", "sick", "limping", "limp", "vomiting", "vomit", "diarrhoea", "diarrhea", "bleeding", "pain", "injured", "hurt"],
+    weak: ["ill", "worry", "worried", "concern", "concerning", "serious", "clinic", "symptom", "symptoms", "behaviour require", "behavior require"],
     reply:
       "Good question to ask early. As a general guide for Lily:\n\n" +
       "See a vet the same day for: repeated vomiting or diarrhoea, refusing water, limping that doesn't improve with rest, laboured breathing, a swollen abdomen, or sudden behaviour change (hiding, snapping, disorientation).\n\n" +
@@ -292,7 +424,8 @@ const CHAT_RESPONSES = [
       "⚠ CUB gives general guidance only and can't diagnose — when in doubt, always choose the vet.",
   },
   {
-    match: /groom|brush|coat|shed|bath|fur/i,
+    strong: ["grooming", "groom", "brush", "brushing", "shedding", "bath", "bathe", "nails", "nail"],
+    weak: ["coat", "shed", "fur", "hair", "smell", "clean"],
     reply:
       "Lily's retriever-mix coat in a tropical climate does best with:\n\n" +
       "• Brushing every other day (5 minutes with a slicker brush after the evening walk — it's already in her care plan)\n" +
@@ -301,19 +434,98 @@ const CHAT_RESPONSES = [
       "• Nail trim roughly monthly — if you hear clicking on the floor, they're due\n\n" +
       "Shedding will spike a couple of times a year; daily brushing during those weeks keeps your sofa (mostly) fur-free. If you see redness, flaking, or she scratches one spot persistently, that's a vet-visit item rather than a grooming one.",
   },
+  {
+    strong: ["barking", "barks", "bark", "howling", "howls", "whining", "whines", "noisy", "vocal"],
+    weak: ["loud", "noise", "neighbours", "neighbors", "doorbell", "night", "stop"],
+    reply:
+      "Barking is communication — the fix depends on what Lily is saying. The common patterns:\n\n" +
+      "• Alert barking (doorbell, corridor sounds): normal for a social dog in an apartment. Teach a 'thank you, done' cue — acknowledge, reward silence.\n" +
+      "• Demand barking (at you, for play or food): don't reward it, even with eye contact; reward quiet instead. It gets briefly worse before it stops — hold the line.\n" +
+      "• Boredom barking (alone, repetitive): more morning exercise and a food puzzle before you leave usually shrinks it.\n" +
+      "• Distress barking (only when alone, with pacing or scratching at doors): this is separation-related — worth a structured alone-time training plan.\n\n" +
+      "What to observe: when does it happen, what's she facing, and does she settle after? A short video helps a lot.\n\n" +
+      "⚠ Sudden new vocalising with restlessness or when touched can signal pain — that's a vet visit, not training.",
+  },
+  {
+    strong: ["chewing", "chew", "chews", "destroy", "destroyed", "destructive", "biting furniture", "bite furniture", "nipping", "mouthing"],
+    weak: ["furniture", "shoes", "sofa", "table", "bite", "teeth", "puppy"],
+    reply:
+      "Chewing at 2 years old is usually energy or boredom rather than teething. For Lily:\n\n" +
+      "• Manage first: put irresistibles (shoes, cables) out of reach while you retrain habits.\n" +
+      "• Give a legal outlet: rotate 2–3 proper chews (rubber KONG, coffee-wood, bully stick) — retrievers are mouthy by design and need to chew something.\n" +
+      "• Trade, don't chase: swap the forbidden item for a treat or toy calmly; chasing turns it into a brilliant game.\n" +
+      "• Check the day's balance: destructive chewing that happens mostly when she's alone or under-exercised points to boredom — add a walk or puzzle feeder.\n\n" +
+      "Nipping at hands during play: freeze, go boring for 10 seconds, resume with a toy between you.\n\n" +
+      "⚠ If she swallows pieces of objects, watch for vomiting or lethargy and call your vet — blockages are serious.",
+  },
+  {
+    strong: ["toilet", "potty", "pee", "peeing", "urinating", "urinates", "accidents", "poop", "pooping", "housebreaking", "house training", "marking"],
+    weak: ["inside", "home", "carpet", "floor", "training"],
+    reply:
+      "Toilet accidents in an adult dog like Lily usually have one of three causes:\n\n" +
+      "1. Routine change — new home, new schedule, or reduced walk frequency. Re-run puppy rules for a week: out first thing, after meals, after naps, big praise outside.\n" +
+      "2. Incomplete house training that was masked by a previous routine — same fix, plus supervise indoors and clean accidents with an enzymatic cleaner (regular cleaner leaves a scent invitation).\n" +
+      "3. Medical — urinary tract infections are common in females and often look like sudden 'forgetting'. Small frequent puddles, straining, or licking after peeing all point this way.\n\n" +
+      "What to observe: frequency, amount, where it happens, and whether she signals to go out.\n\n" +
+      "⚠ If accidents appeared suddenly after months of reliability, or you see straining or blood, see a vet promptly — rule out infection before training harder.",
+  },
 ];
 
-const CHAT_FALLBACK =
-  "I don't have a specific answer prepared for that in this prototype, but here's how I'd think about it for Lily:\n\n" +
-  "• Compare against her baseline — appetite, energy, sleep, and toilet habits are the big four.\n" +
-  "• Change one thing at a time when trying a fix, so you can tell what helped.\n" +
-  "• Note observations in her care log — patterns over days beat single moments.\n\n" +
-  "Try one of the suggested questions below for a fuller answer, and remember: CUB offers general guidance, not veterinary advice.";
+const CHAT_TOPIC_MENU =
+  "night pacing and settling, exercise needs, food refusal, enrichment ideas, barking, chewing, toilet accidents, grooming, and when to see a vet";
 
-// Demo chatbot: keyword-matched canned replies with a natural typing delay.
+const CHAT_FALLBACK =
+  "I'm not confident I understood that one, and I'd rather say so than guess wrong. In this prototype I can help with: " +
+  CHAT_TOPIC_MENU + ".\n\n" +
+  "For anything else, a good general approach for Lily:\n" +
+  "• Compare against her baseline — appetite, energy, sleep, and toilet habits are the big four.\n" +
+  "• Change one thing at a time when trying a fix, so you can tell what helped.\n\n" +
+  "And remember: CUB offers general guidance, not veterinary advice.";
+
+const GREETING_RE = /^\s*(hi|hihi|hello|hey|yo|good (morning|afternoon|evening)|thanks|thank you|ty)[!. ]*$/i;
+
+function scoreTopic(topic, text) {
+  let score = 0;
+  for (const phrase of topic.strong) {
+    if (text.includes(phrase)) score += 3;
+  }
+  for (const phrase of topic.weak) {
+    if (text.includes(phrase)) score += 1;
+  }
+  return score;
+}
+
+// Demo chatbot: scored keyword matching over prepared topics. A topic only
+// wins with a clear signal (a strong keyword, or several weak ones); anything
+// ambiguous gets an honest "not sure" instead of a wrong guess.
 export async function askCub(message) {
-  const found = CHAT_RESPONSES.find((entry) => entry.match.test(message));
-  const reply = found ? found.reply : CHAT_FALLBACK;
+  const text = message.toLowerCase().replace(/[^a-z0-9' ]+/g, " ").replace(/\s+/g, " ").trim();
+
+  let reply;
+  if (GREETING_RE.test(message.trim())) {
+    reply =
+      `Hello! Happy to help with ${SAMPLE_DOG.name}. I know her profile well — ask me about ` +
+      CHAT_TOPIC_MENU + ", or tap a suggestion below.";
+  } else {
+    let best = null;
+    let bestScore = 0;
+    let secondScore = 0;
+    for (const topic of CHAT_RESPONSES) {
+      const score = scoreTopic(topic, text);
+      if (score > bestScore) {
+        secondScore = bestScore;
+        best = topic;
+        bestScore = score;
+      } else if (score > secondScore) {
+        secondScore = score;
+      }
+    }
+    // Answer on a strong keyword hit (>=3), or on two weak hits when no other
+    // topic is competing — anything more ambiguous gets the honest fallback.
+    const confident = bestScore >= 3 || (bestScore >= 2 && bestScore - secondScore >= 2);
+    reply = best && confident ? best.reply : CHAT_FALLBACK;
+  }
+
   const delay = 900 + Math.min(1800, reply.length * 3);
   await new Promise((resolve) => setTimeout(resolve, delay));
   return reply;

@@ -87,7 +87,7 @@ export default function EmotionScan() {
     setPhase("analyzing");
     const outcome = await analyzeDogImage(capturedBlob);
     setResult(outcome);
-    setPhase("result");
+    setPhase(outcome.kind === "dog" ? "result" : "no-read");
   };
 
   const retake = () => {
@@ -127,8 +127,10 @@ export default function EmotionScan() {
           <p className="eyebrow">Emotion Scan</p>
           <h1>How is {SAMPLE_DOG.name} feeling?</h1>
           <p className="helper-copy">
-            Point your camera at {SAMPLE_DOG.name} or upload a photo. This prototype demonstrates
-            the experience with simulated analysis — it does not diagnose emotions or health.
+            Point your camera at {SAMPLE_DOG.name} or upload a photo. CUB checks on-device that a
+            dog is actually in frame and how much of the body is visible (the first scan downloads
+            a small model; photos never leave your device). The emotional read itself is still a
+            prototype and does not diagnose emotions or health.
           </p>
         </div>
 
@@ -171,13 +173,13 @@ export default function EmotionScan() {
             <video ref={videoRef} className="care-scan-video" playsInline muted />
           )}
 
-          {(phase === "captured" || phase === "analyzing" || phase === "result") && capturedUrl && (
+          {(phase === "captured" || phase === "analyzing" || phase === "result" || phase === "no-read") && capturedUrl && (
             <div className="care-scan-frame">
               <img src={capturedUrl} alt={`Captured photo of ${SAMPLE_DOG.name}`} />
               {phase === "analyzing" && (
                 <div className="care-scan-overlay" role="status" aria-label="Analysis in progress">
                   <div className="care-scan-beam" aria-hidden="true" />
-                  <p>Reading body language…</p>
+                  <p>Looking for a dog and reading body language…</p>
                 </div>
               )}
             </div>
@@ -207,7 +209,7 @@ export default function EmotionScan() {
               <button className="ghost-action" type="button" onClick={retake}>Retake</button>
             </>
           )}
-          {phase === "result" && (
+          {(phase === "result" || phase === "no-read") && (
             <button className="ghost-action" type="button" onClick={reset}>New scan</button>
           )}
           <input
@@ -221,6 +223,22 @@ export default function EmotionScan() {
         </div>
       </section>
 
+      {phase === "no-read" && result && (
+        <section className="panel care-scan-result" aria-label="Scan outcome" role="status">
+          <div className="care-result-head">
+            <span className="care-mood-chip mood-none">No read</span>
+          </div>
+          <p className="care-result-explainer"><b>{result.message}</b></p>
+          <p className="care-result-explainer">{result.detail}</p>
+          <div className="care-result-actions">
+            <button className="primary-action" type="button" onClick={retake}>Try the camera again</button>
+            <button className="ghost-action" type="button" onClick={() => fileInputRef.current?.click()}>
+              Upload a different photo
+            </button>
+          </div>
+        </section>
+      )}
+
       {phase === "result" && result && (
         <section className="panel care-scan-result" aria-label="Scan result">
           <div className="care-result-head">
@@ -230,6 +248,11 @@ export default function EmotionScan() {
             </span>
           </div>
           <p className="care-result-explainer">{result.explanation}</p>
+          {result.notes?.length > 0 && (
+            <ul className="care-result-notes">
+              {result.notes.map((note) => <li key={note}>{note}</li>)}
+            </ul>
+          )}
           <div className="care-result-cols">
             <div>
               <h3>Signals CUB noticed</h3>

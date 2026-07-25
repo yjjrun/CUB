@@ -3104,3 +3104,15 @@ input[type="range"] {
   .care-nav button, .care-tabs button, .care-task { transition: none; }
   .care-chat-log { scroll-behavior: auto; }
 }
+
+/* Emotion scan v2: no-read outcome + framing notes */
+.mood-none { background: var(--slot); }
+
+.care-result-notes {
+  margin: 0;
+  padding: 10px 14px 10px 30px;
+  background: var(--gold-soft);
+  border-radius: 12px;
+  color: var(--coffee);
+  line-height: 1.5;
+}
