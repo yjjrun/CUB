@@ -284,13 +284,13 @@ img {
 
 .proof-heading {
   color: var(--coffee);
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .proof-heading p {
   color: var(--coffee);
   font-size: 0.92rem;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .trait-marquee {
@@ -370,7 +370,7 @@ img {
   border-left: 3px solid var(--gold);
   color: var(--coffee);
   font-size: 1.04rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.35;
 }
 
