@@ -27,10 +27,12 @@ Fields the listings do not publish, and where they come from instead
     breed   - not published; all recorded as Singapore Special (Local Mixed Breed)
     size    - not published; all recorded as Large, per the shelter
     colour  - not published; read from each dog's cover photo
-    C-BARQ  - not published; ESTIMATED from each dog's background and
-              personality write-up. Grounded in what the listing says, but not
-              a completed questionnaire - the shelter should still fill in the
-              real form, and every dog's notes say so.
+    C-BARQ  - not published; the 42 item answers are ESTIMATED from each dog's
+              background and personality write-up (scripts/mercylight_cbarq.py)
+              and scored into factors by the form's own arithmetic. 31 of 42
+              items are answered; the rest stay N/A because a shelter cannot
+              observe them. Still not a completed questionnaire - the shelter
+              should replace it, and every dog's notes say so.
     photos  - mirrored into public/assets/dogs/ and served from meetmycub.com
               rather than hotlinked from the shelter's CDN.
 """
@@ -48,7 +50,8 @@ from datetime import date, datetime
 from html.parser import HTMLParser
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from mercylight_profiles import colour_for, factors_for, rationale_for  # noqa: E402
+from mercylight_profiles import colour_for, rationale_for  # noqa: E402
+from mercylight_cbarq import answers_for, answered_count, derive_factors  # noqa: E402
 
 LISTING = "https://www.mercylight.org.sg/adopt-a-blessing"
 PROFILE = "https://www.mercylight.org.sg/adopt-a-blessing/{slug}"
@@ -189,11 +192,9 @@ def scrape_profile(slug: str) -> dict:
 DEFAULT_BREED = "Singapore Special (Local Mixed Breed)"
 
 ESTIMATE_NOTE = (
-    "Behavioural profile is an ESTIMATE read from Mercylight's published "
-    "background and personality write-up, not a completed C-BARQ "
-    "questionnaire. It is grounded in what the listing actually says about "
-    "this dog, but the shelter should still complete the real C-BARQ form in "
-    "the portal to replace it."
+    "C-BARQ answers are ESTIMATES read from Mercylight's published background "
+    "and personality write-up, not a completed questionnaire. Please review "
+    "and correct them in the shelter portal."
 )
 
 
@@ -232,8 +233,14 @@ def to_cub_payload(record: dict, breed: str) -> dict:
         "Singapore Specials qualify for HDB flats via Project ADORE rather than "
         "the AVS breed list)."
     )
-    why = rationale_for(record["slug"].replace("-blessing", ""))
-    notes_parts.append(ESTIMATE_NOTE + (f" Basis: {why}." if why else ""))
+    slug_key = record["slug"].replace("-blessing", "")
+    why = rationale_for(slug_key)
+    answered = answered_count(answers_for(slug_key))
+    notes_parts.append(
+        f"{ESTIMATE_NOTE} {answered} of 42 C-BARQ items estimated; the rest are "
+        "marked N/A because a shelter cannot observe them."
+        + (f" Basis: {why}." if why else "")
+    )
     notes_parts.append("Source: " + record["sourceUrl"])
 
     slug = record["slug"].replace("-blessing", "")
@@ -251,7 +258,12 @@ def to_cub_payload(record: dict, breed: str) -> dict:
         # been assessed for Project ADORE, which the breed list cannot express.
         "hdbApproved": (record.get("shelterSaysHdb") or "").strip().lower().startswith("yes"),
     }
-    payload["cbarqFactors"] = factors_for(slug)
+    # Send the item answers as well as the factors, and derive the factors from
+    # those answers with the form's own arithmetic, so an imported dog and a
+    # hand-entered one are scored identically.
+    answers = answers_for(slug)
+    payload["cbarqAnswers"] = answers
+    payload["cbarqFactors"] = derive_factors(answers)
     return payload
 
 
