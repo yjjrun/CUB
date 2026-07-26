@@ -411,12 +411,19 @@ def is_banned_breed(breed: str) -> bool:
     return includes_any(str(breed or ""), BANNED_BREED_TERMS)
 
 
-def derive_dog_care_profile(breed: str, size: str) -> dict:
+def derive_dog_care_profile(breed: str, size: str, hdb_override: bool | None = None) -> dict:
     label = str(breed or "").strip()
     size_label = str(size or "").strip().lower()
     # HDB approval follows the official AVS/HDB breed list only — size is not
     # a criterion. Unlisted or mixed breeds default to not approved.
+    #
+    # A partner may override this. The breed list is not the only route into an
+    # HDB flat: local mixed-breeds up to 55cm qualify through Project ADORE,
+    # and only the shelter knows whether a given dog has been assessed for it.
+    # A shelter's first-hand judgement beats a breed-name lookup.
     hdb_approved = label in HDB_APPROVED_BREEDS
+    if hdb_override is not None:
+        hdb_approved = hdb_override
 
     home_fit = "landed house"
     if hdb_approved:
@@ -556,7 +563,12 @@ def insert_dog(payload: dict, partner: dict) -> dict:
             "This breed is on the AVS Part 1 specified (banned) list and cannot "
             "be imported or newly licensed in Singapore."
         )
-    care_profile = derive_dog_care_profile(breed, size)
+    # Partners may assert HDB approval themselves (e.g. a local mixed-breed
+    # cleared through Project ADORE). Omitting the field keeps the derived
+    # value, so existing callers are unaffected.
+    hdb_override = payload.get("hdbApproved")
+    hdb_override = bool(hdb_override) if isinstance(hdb_override, bool) else None
+    care_profile = derive_dog_care_profile(breed, size, hdb_override)
     dog_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
 

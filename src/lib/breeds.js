@@ -480,13 +480,19 @@ export function exerciseFitOptions(minimumNeed) {
   return EXERCISE_FIT_OPTIONS.slice(start);
 }
 
-export function deriveDogCareProfile({ breed, size } = {}) {
+export function deriveDogCareProfile({ breed, size, hdbOverride } = {}) {
   const label = labelForBreed(breed);
   const sizeLabel = String(size || "").toLowerCase();
   // HDB approval follows the official AVS/HDB breed list only — size is not
-  // a criterion. Unlisted or mixed breeds default to not approved (local
-  // mixed-breeds up to 55cm may still qualify via Project ADORE).
-  const hdbApproved = HDB_APPROVED_BREEDS.has(label);
+  // a criterion. Unlisted or mixed breeds default to not approved.
+  //
+  // A shelter can override this: local mixed-breeds up to 55cm reach HDB flats
+  // through Project ADORE, which the breed list cannot express. Mirrors
+  // derive_dog_care_profile() in server.py so the form preview matches what
+  // actually gets saved.
+  const hdbApproved = typeof hdbOverride === "boolean"
+    ? hdbOverride
+    : HDB_APPROVED_BREEDS.has(label);
   const specified = SPECIFIED_PART2_BREEDS.has(label);
 
   let homeFit = "landed house";

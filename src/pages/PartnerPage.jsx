@@ -87,9 +87,20 @@ function Intake({ session, onLogout }) {
   useEffect(refreshDogs, []);
 
   const setField = (key, value) => setPartner((p) => ({ ...p, [key]: value }));
-  const careProfile = useMemo(
+  // What the AVS breed list alone says — used only to show when the shelter's
+  // tick differs from it.
+  const breedListProfile = useMemo(
     () => deriveDogCareProfile({ breed: partner.breed, size: partner.size }),
     [partner.breed, partner.size],
+  );
+  // What actually gets saved, honouring the shelter's override.
+  const careProfile = useMemo(
+    () => deriveDogCareProfile({
+      breed: partner.breed,
+      size: partner.size,
+      hdbOverride: partner.hdbApproved,
+    }),
+    [partner.breed, partner.size, partner.hdbApproved],
   );
   const setPhoto = (file) => {
     if (!file) return;
@@ -173,6 +184,22 @@ function Intake({ session, onLogout }) {
                 <span>HDB status</span>
                 <div><b>{careProfile.hdbApproved ? "HDB approved" : "Not HDB approved"}</b></div>
               </div>
+              <label className="check-row">
+                <input
+                  type="checkbox"
+                  checked={careProfile.hdbApproved}
+                  onChange={(e) => setField("hdbApproved", e.target.checked)}
+                />
+                <span>
+                  This dog is HDB approved
+                  {careProfile.hdbApproved !== breedListProfile.hdbApproved
+                    && " (overriding the breed list)"}
+                </span>
+              </label>
+              <p className="helper-copy">
+                Tick this if you know the dog qualifies — a local mixed-breed cleared through
+                Project ADORE counts even though it is not on the AVS breed list.
+              </p>
               {careProfile.specified && (
                 <p className="helper-copy">
                   AVS Part 2 specified breed: not allowed in HDB flats; must be leashed and

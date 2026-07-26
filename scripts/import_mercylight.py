@@ -227,7 +227,11 @@ def to_cub_payload(record: dict, breed: str) -> dict:
             status.append(f"{label}: {record[key]}")
     if status:
         notes_parts.append(" | ".join(status))
-    notes_parts.append(f"Mercylight lists HDB approved: {record.get('shelterSaysHdb') or 'unstated'}.")
+    notes_parts.append(
+        f"HDB approved: {record.get('shelterSaysHdb') or 'unstated'} (per Mercylight; "
+        "Singapore Specials qualify for HDB flats via Project ADORE rather than "
+        "the AVS breed list)."
+    )
     why = rationale_for(record["slug"].replace("-blessing", ""))
     notes_parts.append(ESTIMATE_NOTE + (f" Basis: {why}." if why else ""))
     notes_parts.append("Source: " + record["sourceUrl"])
@@ -243,6 +247,9 @@ def to_cub_payload(record: dict, breed: str) -> dict:
         "notes": "\n\n".join(notes_parts),
         "size": DEFAULT_SIZE,
         "color": colour_for(slug),
+        # Mercylight's own HDB call is authoritative: they know which dogs have
+        # been assessed for Project ADORE, which the breed list cannot express.
+        "hdbApproved": (record.get("shelterSaysHdb") or "").strip().lower().startswith("yes"),
     }
     payload["cbarqFactors"] = factors_for(slug)
     return payload
@@ -353,10 +360,11 @@ def main() -> int:
 #               background/personality text (scripts/mercylight_profiles.py).
 #               Grounded in specific statements, but not a real questionnaire.
 # 6. KIDS     — published, but "Unknown" for 47 of 50 dogs.
-# 7. HDB FLAG — Mercylight publishes one (44 yes / 6 no) but CUB derives its
-#               own from breed, so the shelter's flag is kept in notes only.
-#               For Singapore Specials CUB says "not approved" — correct under
-#               the AVS breed list; they qualify via Project ADORE instead.
+# 7. HDB FLAG — published (44 yes / 6 no) and now sent through as the
+#               authoritative value, overriding CUB's breed-list derivation.
+#               Singapore Specials reach HDB flats via Project ADORE, which a
+#               breed lookup cannot express; the shelter knows which dogs
+#               qualify.
 
 if __name__ == "__main__":
     raise SystemExit(main())
