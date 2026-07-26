@@ -3138,3 +3138,39 @@ input[type="range"] {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+
+/* Emotion scan: upload sits beside "Start camera" as an equal-weight
+   alternative — same footprint and gold underline, but outlined rather than
+   filled so the camera stays the primary path. */
+.care-upload-action {
+  width: 100%;
+  min-height: 54px;
+  margin-top: 8px;
+  border: 2px solid var(--coffee);
+  border-bottom-width: 3px;
+  border-bottom-color: var(--gold);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--coffee);
+  font-weight: 950;
+  box-shadow: 0 8px 20px rgba(74, 36, 17, 0.12);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.care-upload-action:hover {
+  background: var(--gold-soft);
+}
+
+.care-upload-action:active {
+  transform: translateY(1px);
+}
+
+.care-upload-action:focus-visible {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .care-upload-action { transition: none; }
+  .care-upload-action:active { transform: none; }
+}

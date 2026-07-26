@@ -199,8 +199,12 @@ export default function EmotionScan() {
               <button className="primary-action" type="button" onClick={startCamera}>
                 {phase === "idle" ? "📷 Start camera" : "Try camera again"}
               </button>
-              <button className="ghost-action" type="button" onClick={() => fileInputRef.current?.click()}>
-                Upload a photo
+              <button
+                className="care-upload-action"
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                📸 Upload a photo
               </button>
             </>
           )}
@@ -239,8 +243,12 @@ export default function EmotionScan() {
           <p className="care-result-explainer">{result.detail}</p>
           <div className="care-result-actions">
             <button className="primary-action" type="button" onClick={retake}>Try the camera again</button>
-            <button className="ghost-action" type="button" onClick={() => fileInputRef.current?.click()}>
-              Upload a different photo
+            <button
+              className="care-upload-action"
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              📸 Upload a different photo
             </button>
           </div>
         </section>
