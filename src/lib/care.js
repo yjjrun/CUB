@@ -615,32 +615,6 @@ function scoreTopic(topic, text) {
   return score;
 }
 
-// Ask the server-side LLM endpoint. The API key lives only on the server
-// (CUB_ANTHROPIC_API_KEY); when it isn't configured the endpoint reports
-// "demo" and we fall back to the prepared answers below.
-let aiAvailable = true;
-
-export async function askCubAI(message, dog, history) {
-  if (!aiAvailable) return null;
-  try {
-    const response = await fetch("/api/care/ask", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: message, dog, history }),
-    });
-    if (response.status === 503) {
-      // Not configured — stop retrying for this page load.
-      aiAvailable = false;
-      return null;
-    }
-    if (!response.ok) return null;
-    const payload = await response.json();
-    return payload.reply || null;
-  } catch {
-    return null;
-  }
-}
-
 // Demo chatbot: scored keyword matching over prepared topics. A topic only
 // wins with a clear signal (a strong keyword, or several weak ones); anything
 // ambiguous gets an honest "not sure" instead of a wrong guess.

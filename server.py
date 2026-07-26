@@ -31,13 +31,6 @@ PUBLIC_DOMAIN = "https://meetmycub.com"
 # the fallback here is only for local development.
 CODE_PEPPER = os.environ.get("CUB_CODE_PEPPER", "dev-only-pepper-change-me").encode("utf-8")
 ADMIN_CODE = os.environ.get("CUB_ADMIN_CODE", "")
-# Ask CUB (LLM chat). Unset by default: the endpoint then reports "demo" and
-# the frontend uses its prepared answers, so the page always works.
-ANTHROPIC_API_KEY = os.environ.get("CUB_ANTHROPIC_API_KEY", "")
-# Override with CUB_ANTHROPIC_MODEL to trade capability for cost, e.g.
-# claude-sonnet-5 (cheaper) or claude-haiku-4-5 (cheapest).
-ANTHROPIC_MODEL = os.environ.get("CUB_ANTHROPIC_MODEL", "claude-opus-5")
-CARE_ASK_RATE_LIMIT = 20
 SESSION_TTL_SECONDS = 12 * 60 * 60
 RATE_LIMIT_WINDOW_SECONDS = 300
 LOGIN_RATE_LIMIT = 8
@@ -414,89 +407,6 @@ def exercise_fit_options(minimum_need: str) -> list[str]:
     return EXERCISE_FIT_OPTIONS[start:]
 
 
-CARE_SYSTEM_PROMPT = """You are Ask CUB, the pet-care assistant inside CUB Care — a Singapore-based \
-dog adoption and care platform. You are speaking with the owner of the dog described below.
-
-Ground every answer in that specific dog's profile: refer to them by name, and take their breed, \
-age, weight, energy level and personality cluster into account rather than giving generic advice.
-
-Structure answers to a behaviour or health question as:
-1. The most likely explanations, most probable first.
-2. What the owner should observe to tell those explanations apart.
-3. Safe, concrete steps they can try today.
-4. Clear warning signs that mean "see a vet" — be explicit and never downplay these.
-
-Style: warm, practical, plain English. Use short paragraphs or bullet points. Around 150-250 words. \
-Singapore context where relevant (HDB rules, tropical heat and humidity, local vet access).
-
-Hard rules:
-- You are NOT a veterinarian or certified behaviourist. Never diagnose. For anything involving \
-injury, breathing trouble, bloating, repeated vomiting, collapse, seizures, suspected poisoning or \
-sudden behaviour change, tell the owner to contact a vet promptly — that advice comes first.
-- Never suggest specific prescription medication or dosages.
-- If a question isn't about dog care, say so briefly and steer back.
-- Don't invent facts about this dog beyond the profile given."""
-
-
-def ask_claude(question: str, dog: dict, history: list) -> str:
-    """Call the Anthropic Messages API using only the standard library."""
-    import urllib.request
-
-    def clean(value, limit=80):
-        return str(value or "").strip()[:limit]
-
-    traits = dog.get("traits") if isinstance(dog.get("traits"), dict) else {}
-    profile_lines = [
-        f"Name: {clean(dog.get('name')) or 'the dog'}",
-        f"Breed: {clean(dog.get('breed')) or 'unknown'}",
-        f"Age: {clean(dog.get('ageYears'), 12) or 'unknown'} years",
-        f"Sex: {clean(dog.get('sex'), 20) or 'unknown'}",
-        f"Weight: {clean(dog.get('weightKg'), 12) or 'unknown'} kg",
-        f"Location: {clean(dog.get('location')) or 'Singapore'}",
-        f"Behaviour cluster: {clean(dog.get('cluster')) or 'unknown'}",
-        f"Energy: {clean(traits.get('energy'), 8)}/100, "
-        f"sociability: {clean(traits.get('sociability'), 8)}/100, "
-        f"trainability: {clean(traits.get('trainability'), 8)}/100",
-    ]
-    system = CARE_SYSTEM_PROMPT + "\n\nDog profile:\n" + "\n".join(profile_lines)
-
-    messages = []
-    # Keep a short rolling window of prior turns for follow-up questions.
-    for turn in history[-6:]:
-        if not isinstance(turn, dict):
-            continue
-        role = "assistant" if turn.get("role") == "assistant" else "user"
-        text = str(turn.get("text") or "").strip()[:2000]
-        if text:
-            messages.append({"role": role, "content": text})
-    messages.append({"role": "user", "content": question})
-
-    body = json.dumps({
-        "model": ANTHROPIC_MODEL,
-        "max_tokens": 700,
-        "system": system,
-        "messages": messages,
-    }).encode("utf-8")
-
-    request = urllib.request.Request(
-        "https://api.anthropic.com/v1/messages",
-        data=body,
-        headers={
-            "content-type": "application/json",
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        data = json.loads(response.read().decode("utf-8"))
-    parts = [block.get("text", "") for block in data.get("content", []) if block.get("type") == "text"]
-    reply = "".join(parts).strip()
-    if not reply:
-        raise ValueError("Empty response from model")
-    return reply
-
-
 def is_banned_breed(breed: str) -> bool:
     return includes_any(str(breed or ""), BANNED_BREED_TERMS)
 
@@ -746,9 +656,6 @@ class CUBHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/admin/partners":
             self.handle_admin_create_partner()
             return
-        if parsed.path == "/api/care/ask":
-            self.handle_care_ask()
-            return
         if parsed.path != "/api/dogs":
             self.send_error(HTTPStatus.NOT_FOUND)
             return
@@ -846,48 +753,6 @@ class CUBHandler(BaseHTTPRequestHandler):
             self.send_json({"error": "That partner code already exists. Try another code."}, HTTPStatus.CONFLICT)
         except json.JSONDecodeError:
             self.send_json({"error": "Request body must be JSON."}, HTTPStatus.BAD_REQUEST)
-
-    def handle_care_ask(self) -> None:
-        """Ask CUB — proxies the question to Claude with the dog's profile as
-        context. The API key stays server-side; when it is unset the endpoint
-        reports unavailable and the frontend falls back to its canned answers."""
-        if not check_rate_limit("care_ask", self.client_address[0], CARE_ASK_RATE_LIMIT):
-            self.send_json({"error": "Too many questions just now. Try again shortly."}, HTTPStatus.TOO_MANY_REQUESTS)
-            return
-        if not ANTHROPIC_API_KEY:
-            self.send_json({"error": "AI chat is not configured.", "mode": "demo"}, HTTPStatus.SERVICE_UNAVAILABLE)
-            return
-
-        try:
-            payload = self.read_json_body()
-        except json.JSONDecodeError:
-            self.send_json({"error": "Request body must be JSON."}, HTTPStatus.BAD_REQUEST)
-            return
-
-        question = str(payload.get("question") or "").strip()[:1000]
-        if not question:
-            self.send_json({"error": "Ask a question first."}, HTTPStatus.BAD_REQUEST)
-            return
-
-        dog = payload.get("dog") if isinstance(payload.get("dog"), dict) else {}
-        history = payload.get("history") if isinstance(payload.get("history"), list) else []
-
-        try:
-            reply = ask_claude(question, dog, history)
-        except Exception as exc:
-            # Upstream failure shouldn't break the page — the client falls back.
-            # Log the cause (visible via `journalctl -u cub`) so it's diagnosable;
-            # never echo it to the client, since it can quote request details.
-            detail = getattr(exc, "read", None)
-            if callable(detail):
-                try:
-                    detail = detail().decode("utf-8", "replace")[:500]
-                except Exception:
-                    detail = None
-            self.log_message("Ask CUB upstream failure: %s %s | %s", type(exc).__name__, exc, detail or "")
-            self.send_json({"error": "The AI service is unavailable.", "mode": "demo"}, HTTPStatus.BAD_GATEWAY)
-            return
-        self.send_json({"reply": reply, "mode": "ai"})
 
     def require_session(self) -> dict | None:
         header = self.headers.get("Authorization", "")
