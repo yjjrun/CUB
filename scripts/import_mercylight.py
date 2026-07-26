@@ -21,18 +21,18 @@ Options:
     --dry-run         Print the payloads, don't log in or post anything
     --json PATH       Also write the scraped records to PATH for review
     --breed NAME      Breed to record (the listings state none)
-    --derive-factors  Opt in to inferred C-BARQ factors (off by default)
 
-IMPORTANT — what this importer cannot supply:
-    Mercylight's listings carry no breed, size, colour, weight, or C-BARQ
-    behavioural assessment. See DATA_GAPS at the bottom of this file.
-
-    No behavioural factors are sent by default. That is deliberate: the only
-    real behavioural signal in the listings is "good with other dogs", and
-    inferring a full C-BARQ profile from it yields a confident-looking
-    personality cluster that is an artifact of the inference rather than a fact
-    about the dog. Every imported dog carries a note saying its assessment is
-    pending, so the shelter can complete the real C-BARQ form in the portal.
+Fields the listings do not publish, and where they come from instead
+(see scripts/mercylight_profiles.py):
+    breed   - not published; all recorded as Singapore Special (Local Mixed Breed)
+    size    - not published; all recorded as Large, per the shelter
+    colour  - not published; read from each dog's cover photo
+    C-BARQ  - not published; ESTIMATED from each dog's background and
+              personality write-up. Grounded in what the listing says, but not
+              a completed questionnaire - the shelter should still fill in the
+              real form, and every dog's notes say so.
+    photos  - mirrored into public/assets/dogs/ and served from meetmycub.com
+              rather than hotlinked from the shelter's CDN.
 """
 
 from __future__ import annotations
@@ -47,9 +47,17 @@ import urllib.request
 from datetime import date, datetime
 from html.parser import HTMLParser
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from mercylight_profiles import colour_for, factors_for, rationale_for  # noqa: E402
+
 LISTING = "https://www.mercylight.org.sg/adopt-a-blessing"
 PROFILE = "https://www.mercylight.org.sg/adopt-a-blessing/{slug}"
 UA = "CUB-importer/1.0 (+https://meetmycub.com; shelter data sync)"
+# Photos are downloaded, resized and committed to public/assets/dogs/, so CUB
+# serves them itself instead of hotlinking the shelter's CDN.
+HOSTED_IMAGE = "https://meetmycub.com/assets/dogs/{slug}.jpg"
+# Singapore Specials are a medium-to-large landrace; the shelter confirms large.
+DEFAULT_SIZE = "Large"
 
 # Slugs as published on the listing page (50 dogs, "Show more" paginated).
 SLUGS = [
@@ -180,18 +188,12 @@ def scrape_profile(slug: str) -> dict:
 # is an inference, not published data. See DATA_GAPS.
 DEFAULT_BREED = "Singapore Special (Local Mixed Breed)"
 
-PENDING_NOTE = (
-    "BEHAVIOURAL ASSESSMENT PENDING — Mercylight's listing publishes no C-BARQ "
-    "questionnaire, so this dog has no real behavioural profile yet. Complete "
-    "the C-BARQ form in the shelter portal to make matching meaningful; until "
-    "then this dog's personality cluster is a placeholder, not an assessment."
-)
-
-DERIVED_NOTE = (
-    "Behavioural factors are PROVISIONAL — inferred from the few signals in "
-    "Mercylight's listing (good-with-dogs, good-with-children, basic-commands, "
-    "age), NOT from a completed C-BARQ questionnaire. Treat the personality "
-    "cluster as a rough placeholder and replace it via the shelter portal."
+ESTIMATE_NOTE = (
+    "Behavioural profile is an ESTIMATE read from Mercylight's published "
+    "background and personality write-up, not a completed C-BARQ "
+    "questionnaire. It is grounded in what the listing actually says about "
+    "this dog, but the shelter should still complete the real C-BARQ form in "
+    "the portal to replace it."
 )
 
 
@@ -210,57 +212,7 @@ def months_between(dob: str | None) -> int | None:
     return max(0, (today.year - born.year) * 12 + today.month - born.month)
 
 
-def derive_factors(record: dict) -> dict:
-    """Map the few real behavioural signals onto C-BARQ factors (0-4 scale).
-
-    Deliberately conservative: signals the listing does not cover are left at
-    the neutral midpoint (2) rather than invented, so the cluster reflects the
-    little that is actually known.
-    """
-    neutral = 2.0
-    factors = {
-        "strangerAggression": neutral, "ownerAggression": neutral,
-        "dogAggressionFear": neutral, "trainability": neutral,
-        "chasing": neutral, "strangerFear": neutral, "nonsocialFear": neutral,
-        "dogFear": neutral, "separation": neutral, "touchSensitivity": neutral,
-        "excitability": neutral, "attachment": neutral, "energy": neutral,
-    }
-
-    dogs = (record.get("goodWithDogs") or "").lower()
-    if dogs.startswith("yes"):
-        factors["dogAggressionFear"] = 0.5
-        factors["dogFear"] = 0.5
-    elif dogs.startswith("selective"):
-        factors["dogAggressionFear"] = 2.5
-        factors["dogFear"] = 2.0
-
-    kids = (record.get("goodWithChildren") or "").lower()
-    if kids.startswith("yes"):
-        factors["strangerFear"] = 0.5
-    elif kids.startswith("no"):
-        factors["strangerFear"] = 3.0
-        factors["strangerAggression"] = 2.5
-
-    if (record.get("commands") or "").lower().startswith("yes"):
-        factors["trainability"] = 3.0
-
-    months = months_between(record.get("dob"))
-    if months is not None:
-        years = months / 12
-        if years <= 2:
-            factors["energy"] = 3.2
-            factors["excitability"] = 3.0
-        elif years >= 9:
-            factors["energy"] = 1.2
-            factors["excitability"] = 1.5
-        else:
-            factors["energy"] = 2.4
-            factors["excitability"] = 2.2
-
-    return factors
-
-
-def to_cub_payload(record: dict, breed: str, derive: bool = False) -> dict:
+def to_cub_payload(record: dict, breed: str) -> dict:
     notes_parts = []
     if record.get("background"):
         notes_parts.append("Background: " + record["background"])
@@ -276,27 +228,23 @@ def to_cub_payload(record: dict, breed: str, derive: bool = False) -> dict:
     if status:
         notes_parts.append(" | ".join(status))
     notes_parts.append(f"Mercylight lists HDB approved: {record.get('shelterSaysHdb') or 'unstated'}.")
-    notes_parts.append(DERIVED_NOTE if derive else PENDING_NOTE)
+    why = rationale_for(record["slug"].replace("-blessing", ""))
+    notes_parts.append(ESTIMATE_NOTE + (f" Basis: {why}." if why else ""))
     notes_parts.append("Source: " + record["sourceUrl"])
 
+    slug = record["slug"].replace("-blessing", "")
     payload = {
         "name": record["name"],
         "breed": breed,
         "contactUrl": record["sourceUrl"],
         "sex": (record.get("sex") or "").capitalize() or "Unknown",
         "ageMonths": months_between(record.get("dob")),
-        "imageUrl": record.get("imageUrl") or "",
+        "imageUrl": HOSTED_IMAGE.format(slug=slug),
         "notes": "\n\n".join(notes_parts),
-        # size and color are genuinely absent from the source — left blank
-        # rather than guessed, so they show as "not set" in the UI.
-        "size": "",
-        "color": "",
+        "size": DEFAULT_SIZE,
+        "color": colour_for(slug),
     }
-    # By default send NO behavioural factors. Inventing them produces a
-    # confident-looking cluster built on one bit of real information, which is
-    # worse than an obviously-empty one. --derive-factors opts in.
-    if derive:
-        payload["cbarqFactors"] = derive_factors(record)
+    payload["cbarqFactors"] = factors_for(slug)
     return payload
 
 
@@ -329,10 +277,6 @@ def main() -> int:
     parser.add_argument("--json", metavar="PATH")
     parser.add_argument("--breed", default=DEFAULT_BREED,
                         help="Breed to record when the listing states none (default: %(default)s)")
-    parser.add_argument("--derive-factors", action="store_true",
-                        help="Infer provisional C-BARQ factors from listing signals. "
-                             "Off by default: the inference rests on one real signal "
-                             "(good-with-dogs) and produces a misleadingly confident cluster.")
     args = parser.parse_args()
 
     slugs = SLUGS[: args.limit] if args.limit else SLUGS
@@ -347,7 +291,7 @@ def main() -> int:
             failures.append((slug, str(exc)))
             print(f"  [{index}/{len(slugs)}] {slug} — FAILED: {exc}", file=sys.stderr)
 
-    payloads = [to_cub_payload(record, args.breed, args.derive_factors) for record in records]
+    payloads = [to_cub_payload(record, args.breed) for record in records]
 
     if args.json:
         with open(args.json, "w") as handle:
@@ -398,19 +342,21 @@ def main() -> int:
 
 
 # ---------------------------------------------------------------------------
-# DATA_GAPS — what Mercylight's site does not publish
+# DATA_GAPS — what Mercylight's site does not publish, and how it is filled
 # ---------------------------------------------------------------------------
-# 1. BREED       — absent for all 50. Defaulted to Singapore Special.
-# 2. SIZE        — absent for all 50. Left blank; affects HDB/housing scoring.
-# 3. COLOUR      — absent for all 50. Left blank; affects preference matching.
-# 4. WEIGHT      — absent for all 50. CUB has no field for it today.
-# 5. C-BARQ      — absent for all 50. This is the big one: without it CUB's
-#                  behavioural matching (30% of the match score) is inert. The
-#                  factors this script derives are a stopgap, not an assessment.
-# 6. HDB FLAG    — Mercylight publishes one (44 yes / 6 no) but CUB derives its
-#                  own from breed, so the shelter's flag is recorded in notes
-#                  only. For Singapore Specials CUB will say "not approved"
-#                  (correct — they qualify via Project ADORE, not the breed list).
+# 1. BREED    — absent for all 50. Recorded as Singapore Special (inference:
+#               the write-ups describe NParks/TNRM island and street rescues).
+# 2. SIZE     — absent for all 50. Recorded as Large, per the shelter.
+# 3. COLOUR   — absent for all 50. Read from each cover photo.
+# 4. WEIGHT   — absent for all 50; CUB has no field for it today.
+# 5. C-BARQ   — absent for all 50. ESTIMATED per dog from the published
+#               background/personality text (scripts/mercylight_profiles.py).
+#               Grounded in specific statements, but not a real questionnaire.
+# 6. KIDS     — published, but "Unknown" for 47 of 50 dogs.
+# 7. HDB FLAG — Mercylight publishes one (44 yes / 6 no) but CUB derives its
+#               own from breed, so the shelter's flag is kept in notes only.
+#               For Singapore Specials CUB says "not approved" — correct under
+#               the AVS breed list; they qualify via Project ADORE instead.
 
 if __name__ == "__main__":
     raise SystemExit(main())
