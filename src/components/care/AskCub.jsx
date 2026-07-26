@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { SAMPLE_DOG, STARTER_QUESTIONS, askCub } from "../../lib/care.js";
+import { SAMPLE_DOG, STARTER_QUESTIONS, askCub, askCubAI } from "../../lib/care.js";
 
 function timeLabel(date) {
   return date.toLocaleTimeString("en-SG", { hour: "numeric", minute: "2-digit" });
@@ -27,10 +27,19 @@ export default function AskCub() {
     const question = text.trim();
     if (!question || busy) return;
     setInput("");
+    const history = messages
+      .filter((entry) => entry.text)
+      .map((entry) => ({ role: entry.role === "you" ? "user" : "assistant", text: entry.text }));
     setMessages((prev) => [...prev, { role: "you", text: question, at: new Date() }]);
     setBusy(true);
-    const reply = await askCub(question);
-    setMessages((prev) => [...prev, { role: "cub", text: reply, at: new Date() }]);
+    // Try the server-side LLM first; fall back to the prepared answers when
+    // it isn't configured or is unreachable.
+    const aiReply = await askCubAI(question, SAMPLE_DOG, history);
+    const reply = aiReply || (await askCub(question));
+    setMessages((prev) => [
+      ...prev,
+      { role: "cub", text: reply, at: new Date(), source: aiReply ? "ai" : "demo" },
+    ]);
     setBusy(false);
   };
 

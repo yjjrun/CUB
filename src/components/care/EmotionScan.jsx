@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { SAMPLE_DOG, analyzeDogImage, loadScanHistory, saveScanHistory } from "../../lib/care.js";
+import {
+  RESEARCH_CITATION,
+  SAMPLE_DOG,
+  analyzeDogImage,
+  loadScanHistory,
+  saveScanHistory,
+} from "../../lib/care.js";
 
 // Scan phases: idle -> requesting -> live -> captured -> analyzing -> result
 // plus terminal error phases: denied, unavailable.
@@ -112,6 +118,7 @@ export default function EmotionScan() {
       id: `scan-${Date.now()}`,
       date: new Date().toISOString(),
       mood: result.mood,
+      posture: result.posture,
       confidence: result.confidence,
     };
     const next = [entry, ...history];
@@ -247,6 +254,10 @@ export default function EmotionScan() {
               {result.confidence === "uncertain" ? "Confidence: uncertain" : `Confidence: ${result.confidence}`}
             </span>
           </div>
+          <p className="care-posture-line">
+            Closest posture match: <b>{result.posture}</b>
+            {result.researchMood && <> · research class “{result.researchMood}”</>}
+          </p>
           <p className="care-result-explainer">{result.explanation}</p>
           {result.notes?.length > 0 && (
             <ul className="care-result-notes">
@@ -255,9 +266,14 @@ export default function EmotionScan() {
           )}
           <div className="care-result-cols">
             <div>
-              <h3>Signals CUB noticed</h3>
-              <ul>
-                {result.signals.map((signal) => <li key={signal}>{signal}</li>)}
+              <h3>Signals CUB looked at</h3>
+              <ul className="care-signal-list">
+                {result.signals.map((signal) => (
+                  <li key={signal.text}>
+                    <span className="care-signal-region">{signal.label}</span>
+                    {signal.text}
+                  </li>
+                ))}
               </ul>
             </div>
             <div>
@@ -279,8 +295,12 @@ export default function EmotionScan() {
             </button>
           </div>
           <p className="helper-copy">
-            Demo analysis only — CUB suggests possibilities from visible body language and can be wrong.
-            It is not a substitute for a veterinarian or behaviourist.
+            Body-language interpretation follows{" "}
+            <a href={RESEARCH_CITATION.url} target="_blank" rel="noreferrer noopener">
+              {RESEARCH_CITATION.short}
+            </a>
+            . {RESEARCH_CITATION.accuracyNote} CUB suggests possibilities and can be wrong — it is
+            not a substitute for a veterinarian or behaviourist.
           </p>
         </section>
       )}

@@ -179,6 +179,19 @@ sudo nginx -t && sudo systemctl reload nginx
 
   Then open `/admin`. The admin view can create partner accounts, review all saved
   dog records, and export a CSV that can be imported into Google Sheets.
+- **Enable the Ask CUB AI chat (optional):** without a key the chat falls back to
+  its prepared answers, so this is opt-in. Add an Anthropic API key to the service
+  env file — never commit it:
+
+  ```bash
+  sudo bash -c 'printf "\nCUB_ANTHROPIC_API_KEY=sk-ant-...\n" >> /var/lib/cub/cub.env'
+  sudo systemctl restart cub
+  ```
+
+  Optionally set `CUB_ANTHROPIC_MODEL` to trade capability for cost
+  (`claude-sonnet-5`, or `claude-haiku-4-5` for the cheapest). Usage is billed by
+  Anthropic per token; the endpoint is rate-limited to 20 questions per 5 minutes
+  per IP.
 - **Logs:** `sudo journalctl -u cub -f`.
 - **Tear down:** `aws ec2 terminate-instances --instance-ids $IID`,
   `aws ec2 release-address --allocation-id $ALLOC`,

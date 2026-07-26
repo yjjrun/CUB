@@ -133,126 +133,212 @@ export const WEEKLY_INSIGHTS = {
 };
 
 // ---------------------------------------------------------------------------
-// Emotion Scan — hybrid analyser.
-// Real on-device object detection (src/lib/vision.js) decides WHAT is in the
-// photo (dog / person / other / nothing) and how much of the dog is visible.
-// The emotional read itself is still a demo: signals are drawn only from body
-// parts the detector confirmed are in frame. Swap pickMood() for a real
-// behaviour-model endpoint to go beyond the demo.
+// Emotion Scan — research-grounded hybrid analyser.
+//
+// Body-language interpretation follows Ferres, Schloesser & Gloor (2022),
+// "Predicting Dog Emotions Based on Posture Analysis Using DeepLabCut",
+// Future Internet 14(4), 97. https://doi.org/10.3390/fi14040097
+//
+// From that work we take:
+// - The four emotion classes their model classifies: Anger, Fear, Happiness,
+//   Relaxation (we add a non-emotion "Discomfort" flag for welfare reasons).
+// - The posture archetypes and per-body-part characteristics in their Table 3.
+// - Their finding that TAIL POSITION is the single most important predictor,
+//   while ear position and back-leg condition contributed least.
+// - Their reported accuracy of 60-70% (neural net 67.5%, decision tree 62.5%),
+//   which caps how confident any read of this kind should ever sound.
+// - Their dataset constraints: full-body images of non-puppy, undocked dogs
+//   that are standing or sitting; keypoint detection degrades otherwise.
+//
+// What is real here: on-device object detection (src/lib/vision.js) verifies a
+// dog is present and how much of it is in frame. What is still a demo: which
+// emotion gets picked. Replacing pickPosture() with a DeepLabCut-style keypoint
+// model would complete the pipeline — see RESEARCH_NOTE below.
 // ---------------------------------------------------------------------------
 
-// Each signal is tagged with the body region it describes so partial photos
-// (e.g. face-only close-ups, tail out of frame) never cite invisible parts.
-export const SCAN_RESULTS = [
+export const RESEARCH_CITATION = {
+  short: "Ferres, Schloesser & Gloor (2022), Future Internet 14(4), 97",
+  title: "Predicting Dog Emotions Based on Posture Analysis Using DeepLabCut",
+  url: "https://doi.org/10.3390/fi14040097",
+  accuracyNote:
+    "Published posture-based models reach 60-70% accuracy on four emotion classes — better than untrained humans, but far from certain.",
+};
+
+// Body regions in the order the research derives pose metrics from them.
+// `weight` reflects each region's importance to the published classifier:
+// tail position dominated their decision tree; ears and back legs were dropped.
+export const POSE_REGIONS = {
+  tail: { label: "Tail position", weight: 3 },
+  weight: { label: "Body weight distribution", weight: 2 },
+  head: { label: "Head position", weight: 2 },
+  mouth: { label: "Mouth condition", weight: 2 },
+  frontLegs: { label: "Front leg condition", weight: 1 },
+  ears: { label: "Ear position", weight: 1 },
+  backLegs: { label: "Back leg condition", weight: 1 },
+};
+
+// Which regions a photo can plausibly show. A head-and-shoulders shot cannot
+// evidence tail or leg metrics, so those are never cited in the result.
+const FRAMING_VISIBILITY = {
+  full: ["tail", "weight", "head", "mouth", "frontLegs", "ears", "backLegs"],
+  partial: ["head", "mouth", "ears", "frontLegs"],
+  closeup: ["head", "mouth", "ears"],
+};
+
+// Posture archetypes from Table 3 of the paper, mapped to the emotion class
+// the authors assign them. Signals quote the body-part characteristics the
+// paper lists for that posture.
+export const POSTURE_ARCHETYPES = [
   {
+    posture: "Neutral",
     mood: "Relaxed",
-    confidence: "moderate",
     signals: [
-      { part: "face", text: "Soft, open mouth" },
-      { part: "face", text: "Neutral ear position" },
-      { part: "body", text: "Loose body posture" },
-      { part: "tail", text: "Tail at rest" },
+      { region: "weight", text: "Weight evenly balanced, front and back end normal" },
+      { region: "head", text: "Head carried up and level" },
+      { region: "ears", text: "Ears up in a resting position" },
+      { region: "tail", text: "Tail hanging down and still" },
+      { region: "mouth", text: "Mouth open with tongue visible" },
     ],
     explanation:
-      "CUB noticed signals that may suggest Lily is at ease — a loose posture and soft face usually accompany a comfortable dog.",
+      "CUB noticed signals that may suggest {name} is relaxed and approachable — the research describes this neutral posture as a dog unconcerned about its surroundings.",
     steps: [
-      "A calm moment is a great time for gentle handling practice or a cuddle.",
-      "Keep the environment predictable — this is her baseline to return to.",
+      "A calm moment is a good time for gentle handling practice or a cuddle.",
+      "Keep the environment predictable — this is her comfortable baseline.",
     ],
     vetFlag: false,
   },
   {
-    mood: "Playful",
-    confidence: "moderate",
+    posture: "Alarmed",
+    mood: "Anger",
+    moodLabel: "Alert",
     signals: [
-      { part: "body", text: "Play-bow posture" },
-      { part: "face", text: "Wide relaxed mouth" },
-      { part: "body", text: "Bouncy weight shifts" },
-      { part: "tail", text: "Tail mid-height, sweeping" },
+      { region: "weight", text: "Weight shifted forward, body still" },
+      { region: "head", text: "Head raised and oriented at something" },
+      { region: "ears", text: "Ears up and pointed forward" },
+      { region: "tail", text: "Tail held horizontal" },
+      { region: "mouth", text: "Mouth only slightly open" },
     ],
     explanation:
-      "CUB noticed signals that may suggest an invitation to play — bouncy, loose movement is how dogs signal friendly intent.",
+      "CUB noticed signals that may suggest {name} is alert — the research describes this as an aroused, attentive state that usually precedes investigating something.",
     steps: [
-      "Offer a game of fetch or tug for 10–15 minutes.",
-      "End the game before she tires completely to keep it positive.",
+      "Follow her gaze to identify what she is tracking.",
+      "Use a cheerful recall or a treat scatter to break long fixation.",
+      "Note the trigger in her care log if this repeats.",
     ],
     vetFlag: false,
   },
   {
-    mood: "Alert",
-    confidence: "low",
+    posture: "Dominant aggressive",
+    mood: "Anger",
+    moodLabel: "Agitated",
     signals: [
-      { part: "face", text: "Ears forward" },
-      { part: "body", text: "Weight shifted ahead" },
-      { part: "face", text: "Closed mouth" },
-      { part: "face", text: "Fixed gaze" },
+      { region: "weight", text: "Front and back end strongly upright, weight forward" },
+      { region: "head", text: "Head held high" },
+      { region: "ears", text: "Ears up and forward" },
+      { region: "tail", text: "Tail raised high" },
+      { region: "mouth", text: "Mouth open with teeth visible" },
     ],
     explanation:
-      "CUB noticed signals that may suggest focused attention on something in the environment. Alertness is normal, but frequent intense fixation can build stress.",
+      "CUB noticed signals that may suggest {name} is standing her ground. In the research this upright, forward posture communicates that a challenge would be met rather than avoided.",
     steps: [
-      "Follow her gaze — identify what she is tracking.",
-      "Use a cheerful recall or treat scatter to break long fixation.",
-      "Note what triggers this in the care log if it repeats.",
+      "Give her space and calmly increase distance from whatever she is facing.",
+      "Do not punish growling or stiffening — those warnings are useful information.",
+      "Repeated episodes are worth a certified behaviourist's input.",
     ],
     vetFlag: false,
   },
   {
-    mood: "Anxious",
-    confidence: "low",
+    posture: "Defensive aggressive",
+    mood: "Fear",
+    moodLabel: "Fearful",
     signals: [
-      { part: "face", text: "Ears pulled back" },
-      { part: "face", text: "Lip licking" },
-      { part: "tail", text: "Lowered tail" },
-      { part: "body", text: "Weight shifted away" },
+      { region: "weight", text: "Front end lowered, back end strongly lowered" },
+      { region: "head", text: "Head lowered" },
+      { region: "ears", text: "Ears down and pulled back" },
+      { region: "tail", text: "Tail down and tucked" },
+      { region: "mouth", text: "Mouth closed and tense" },
     ],
     explanation:
-      "CUB noticed signals that may suggest unease. These body-language cues often appear when a dog wants more distance from something.",
+      "CUB noticed signals that may suggest fear rather than confidence — the research classes this lowered, tucked posture as fear-motivated, and a frightened dog may still snap if cornered.",
     steps: [
-      "Give her space from whatever she is avoiding — don't force an approach.",
-      "Offer a familiar mat or crate as a safe retreat.",
+      "Increase distance from the trigger; never force an approach.",
+      "Offer a familiar mat or crate as a retreat and let her choose it.",
       "If this appears often, a certified behaviourist can help build confidence.",
     ],
     vetFlag: false,
   },
   {
-    mood: "Uncomfortable",
-    confidence: "uncertain",
+    posture: "Active submissive",
+    mood: "Fear",
+    moodLabel: "Anxious",
     signals: [
-      { part: "face", text: "Tense facial muscles" },
-      { part: "body", text: "Stiff posture" },
-      { part: "body", text: "Repeated position shifts" },
-      { part: "tail", text: "Tucked tail" },
+      { region: "weight", text: "Front and back end lowered, weight shifted away" },
+      { region: "head", text: "Head lowered" },
+      { region: "ears", text: "Ears flat and back against the head" },
+      { region: "tail", text: "Tail carried low" },
+      { region: "mouth", text: "Mouth closed" },
     ],
     explanation:
-      "CUB noticed signals that may suggest physical discomfort rather than an emotion. Stiffness and restlessness sometimes accompany pain.",
+      "CUB noticed signals that may suggest {name} is worried and offering appeasement — the research describes this as weak signals of submission from a fearful dog.",
     steps: [
-      "Watch for limping, guarding a body part, or appetite changes today.",
-      "Avoid strenuous exercise until she moves freely again.",
-    ],
-    vetFlag: true,
-  },
-  {
-    mood: "Tired",
-    confidence: "moderate",
-    signals: [
-      { part: "face", text: "Heavy eyelids" },
-      { part: "face", text: "Slow responses" },
-      { part: "body", text: "Seeking rest spots" },
-      { part: "body", text: "Long settled posture" },
-    ],
-    explanation:
-      "CUB noticed signals that may suggest Lily needs rest — normal after exercise, but worth watching if it seems out of proportion to her day.",
-    steps: [
-      "Let her rest somewhere cool and quiet.",
-      "If low energy persists into tomorrow with reduced appetite, check in with your vet.",
+      "Lower the pressure: turn side-on, soften your voice, and let her approach you.",
+      "Reward any voluntary approach with calm praise rather than reaching for her.",
+      "Track what preceded this in her care log — patterns matter more than moments.",
     ],
     vetFlag: false,
   },
+  {
+    posture: "Playful (play bow)",
+    mood: "Happiness",
+    moodLabel: "Playful",
+    signals: [
+      { region: "weight", text: "Front end strongly lowered with back end normal — a play bow" },
+      { region: "head", text: "Head moving rather than fixed" },
+      { region: "ears", text: "Ears up" },
+      { region: "tail", text: "Tail up and moving" },
+      { region: "mouth", text: "Mouth open with tongue visible" },
+    ],
+    explanation:
+      "CUB noticed signals that may suggest an invitation to play — the play bow is the clearest good-mood signal in the research, and the posture their model most associates with happiness.",
+    steps: [
+      "Take her up on it: 10-15 minutes of fetch or tug.",
+      "End the game while she still wants more, so play stays rewarding.",
+    ],
+    vetFlag: false,
+  },
+  {
+    // Not one of the four research emotion classes — a welfare flag we surface
+    // because physical discomfort can be mistaken for a mood.
+    posture: "Guarded / tense",
+    mood: "Discomfort",
+    moodLabel: "Uncomfortable",
+    researchClass: false,
+    signals: [
+      { region: "weight", text: "Weight shifted off one side, posture stiff" },
+      { region: "head", text: "Head low and still" },
+      { region: "mouth", text: "Tense mouth, repeated lip licking" },
+      { region: "frontLegs", text: "Legs braced rather than loose" },
+      { region: "tail", text: "Tail held tight to the body" },
+    ],
+    explanation:
+      "CUB noticed signals that may suggest physical discomfort rather than an emotion. Stiffness, guarding and a tight posture can accompany pain, and pain is often mistaken for a mood.",
+    steps: [
+      "Watch for limping, reluctance on stairs, or appetite changes today.",
+      "Skip strenuous exercise until she moves freely again.",
+      "Note when it started — that timeline is the first thing a vet will ask for.",
+    ],
+    vetFlag: true,
+  },
 ];
 
-const CONFIDENCE_DOWNGRADE = { moderate: "low", low: "uncertain", uncertain: "uncertain" };
+// Backwards-compatible export for anything still reading the old shape.
+export const SCAN_RESULTS = POSTURE_ARCHETYPES;
 
-// Deterministic demo pick so the same image gives the same mood.
+const CONFIDENCE_ORDER = ["uncertain", "low", "moderate"];
+const stepDown = (level, by = 1) =>
+  CONFIDENCE_ORDER[Math.max(0, CONFIDENCE_ORDER.indexOf(level) - by)];
+
+// Deterministic demo pick so the same photo always gives the same posture.
 async function hashBlob(imageBlob) {
   const buffer = await imageBlob.arrayBuffer();
   const bytes = new Uint8Array(buffer);
@@ -262,31 +348,66 @@ async function hashBlob(imageBlob) {
   return hash;
 }
 
-function buildDogResult(base, framing) {
-  const partial = framing?.partial ?? false;
-  const weakDetection = framing ? framing.score < 0.6 : false;
-  const visibleParts = partial ? new Set(["face", "body"]) : new Set(["face", "body", "tail"]);
-  const signals = base.signals
-    .filter((signal) => visibleParts.has(signal.part))
-    .map((signal) => signal.text);
-
-  let confidence = base.confidence;
-  if (partial || weakDetection) confidence = CONFIDENCE_DOWNGRADE[confidence];
-
-  const notes = [];
-  if (partial) {
-    notes.push(
-      "Only part of the body is in frame, so tail and full-posture signals were not assessed. A photo showing the whole dog gives a fuller read.",
-    );
-  }
-  if (weakDetection) {
-    notes.push("The dog was hard to make out in this photo — better lighting or a closer shot would help.");
-  }
-
-  return { kind: "dog", ...base, signals, confidence, notes };
+function pickPosture(hash) {
+  return POSTURE_ARCHETYPES[hash % POSTURE_ARCHETYPES.length];
 }
 
-export async function analyzeDogImage(imageBlob) {
+function framingKind(framing) {
+  if (!framing) return "full";
+  if (framing.coverage > 0.82) return "closeup";
+  return framing.partial ? "partial" : "full";
+}
+
+function buildDogResult(base, framing, dogName) {
+  const kind = framingKind(framing);
+  const visible = new Set(FRAMING_VISIBILITY[kind]);
+  const signals = base.signals.filter((signal) => visible.has(signal.region));
+
+  // Evidence weight actually observed, against the full-body maximum. The
+  // research weights tail position highest, so a photo without the tail can
+  // never reach high confidence.
+  const totalWeight = base.signals.reduce((sum, s) => sum + POSE_REGIONS[s.region].weight, 0);
+  const seenWeight = signals.reduce((sum, s) => sum + POSE_REGIONS[s.region].weight, 0);
+  const evidence = totalWeight ? seenWeight / totalWeight : 0;
+
+  // Ceiling starts at "moderate": the published models top out at ~67%
+  // accuracy, so nothing here should ever read as high confidence.
+  let confidence = "moderate";
+  if (evidence < 0.75) confidence = stepDown(confidence);
+  if (evidence < 0.45) confidence = stepDown(confidence);
+  if (framing && framing.score < 0.6) confidence = stepDown(confidence);
+
+  const notes = [];
+  if (kind === "closeup") {
+    notes.push(
+      `Close-up framing: ${dogName}'s tail and stance aren't visible, and tail position is the strongest single predictor in the research — so this read rests on face signals alone.`,
+    );
+  } else if (kind === "partial") {
+    notes.push(
+      "Part of the body is outside the frame, so tail and weight-distribution signals were not assessed. A full-body photo gives a much stronger read.",
+    );
+  }
+  if (framing && framing.score < 0.6) {
+    notes.push("The dog was hard to make out — better lighting or a closer shot would help.");
+  }
+  notes.push(
+    "Posture reads are most reliable when a dog is standing or sitting; lying-down and mid-motion shots are harder to interpret.",
+  );
+
+  return {
+    kind: "dog",
+    ...base,
+    mood: base.moodLabel || base.mood,
+    researchMood: base.researchClass === false ? null : base.mood,
+    explanation: base.explanation.replace(/\{name\}/g, dogName),
+    signals: signals.map((signal) => ({ ...signal, label: POSE_REGIONS[signal.region].label })),
+    confidence,
+    evidence,
+    notes,
+  };
+}
+
+export async function analyzeDogImage(imageBlob, dogName = SAMPLE_DOG.name) {
   const started = Date.now();
   // Keep the scanning animation on screen long enough to read, even when
   // detection is fast; the first scan is slower while the model downloads.
@@ -295,23 +416,23 @@ export async function analyzeDogImage(imageBlob) {
     if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
   };
 
-  let detection = null;
+  let subjects = null;
+  let assessDogFraming = null;
   try {
-    const { detectSubjects, assessDogFraming } = await import("./vision.js");
-    const subjects = await detectSubjects(imageBlob);
-    detection = { subjects, assessDogFraming };
+    const vision = await import("./vision.js");
+    subjects = await vision.detectSubjects(imageBlob);
+    assessDogFraming = vision.assessDogFraming;
   } catch {
-    // Model failed to load (e.g. offline) — fall back to the pure demo pick,
-    // clearly labelled for the user.
+    // Model failed to load (e.g. offline) — fall back to the demo read,
+    // clearly labelled so it is never mistaken for a verified result.
     const hash = await hashBlob(imageBlob);
     await minDelay();
-    const base = SCAN_RESULTS[hash % SCAN_RESULTS.length];
-    const result = buildDogResult(base, null);
-    result.notes = ["The on-device detection model couldn't load, so this is an unverified demo read."];
+    const result = buildDogResult(pickPosture(hash), null, dogName);
+    result.confidence = "uncertain";
+    result.notes = ["The on-device detection model couldn't load, so nothing in this photo was verified — treat this as a demo read only."];
     return result;
   }
 
-  const { subjects, assessDogFraming } = detection;
   await minDelay();
 
   if (!subjects.dog) {
@@ -320,30 +441,29 @@ export async function analyzeDogImage(imageBlob) {
         kind: "person",
         message: "That looks like a person, not a dog.",
         detail:
-          "CUB reads canine body language only — human expressions work quite differently. Point the camera at Lily and try again.",
+          "CUB reads canine posture only. The research this is built on models dog body language specifically — human expressions work differently and would not be interpreted correctly. Point the camera at your dog and try again.",
       };
     }
     if (subjects.otherAnimal) {
       return {
         kind: "other-animal",
         message: `That looks like a ${subjects.otherAnimal.class}, not a dog.`,
-        detail: "CUB's body-language guide is dog-specific, so it can't read this friend. Try a photo of Lily instead.",
+        detail: "CUB's posture guide is dog-specific, so it can't read this friend. Try a photo of your dog instead.",
       };
     }
     return {
       kind: "none",
       message: "CUB couldn't find a dog in this photo.",
       detail:
-        "Try a clearer, closer shot with good lighting — ideally with Lily's face and body visible and not too far from the camera.",
+        "Try a clearer, well-lit shot. The posture research works best on a standing or sitting dog with the whole body in frame.",
     };
   }
 
   const framing = assessDogFraming(subjects.dog, subjects.imageWidth, subjects.imageHeight);
   const hash = await hashBlob(imageBlob);
-  const base = SCAN_RESULTS[hash % SCAN_RESULTS.length];
-  const result = buildDogResult(base, framing);
+  const result = buildDogResult(pickPosture(hash), framing, dogName);
   if (subjects.person) {
-    result.notes.push("A person is also in frame — signals were read from the dog only.");
+    result.notes.push("A person is also in frame — posture signals were read from the dog only.");
   }
   return result;
 }
@@ -493,6 +613,32 @@ function scoreTopic(topic, text) {
     if (text.includes(phrase)) score += 1;
   }
   return score;
+}
+
+// Ask the server-side LLM endpoint. The API key lives only on the server
+// (CUB_ANTHROPIC_API_KEY); when it isn't configured the endpoint reports
+// "demo" and we fall back to the prepared answers below.
+let aiAvailable = true;
+
+export async function askCubAI(message, dog, history) {
+  if (!aiAvailable) return null;
+  try {
+    const response = await fetch("/api/care/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: message, dog, history }),
+    });
+    if (response.status === 503) {
+      // Not configured — stop retrying for this page load.
+      aiAvailable = false;
+      return null;
+    }
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return payload.reply || null;
+  } catch {
+    return null;
+  }
 }
 
 // Demo chatbot: scored keyword matching over prepared topics. A topic only
