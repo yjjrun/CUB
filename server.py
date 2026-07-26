@@ -673,7 +673,12 @@ class CUBHandler(BaseHTTPRequestHandler):
             return
 
         if not check_rate_limit("post_dog", self.client_address[0], POST_RATE_LIMIT):
-            self.send_json({"error": "Too many requests. Try again later."}, HTTPStatus.TOO_MANY_REQUESTS)
+            self.send_json(
+                {"error": "Too many requests. Try again later.",
+                 "retryAfter": RATE_LIMIT_WINDOW_SECONDS},
+                HTTPStatus.TOO_MANY_REQUESTS,
+                extra_headers={"Retry-After": str(RATE_LIMIT_WINDOW_SECONDS)},
+            )
             return
 
         session = self.require_session()
@@ -805,11 +810,14 @@ class CUBHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(target.read_bytes())
 
-    def send_json(self, payload: dict, status: HTTPStatus = HTTPStatus.OK) -> None:
+    def send_json(self, payload: dict, status: HTTPStatus = HTTPStatus.OK,
+                  extra_headers: dict | None = None) -> None:
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(body)))
+        for name, value in (extra_headers or {}).items():
+            self.send_header(name, value)
         self.end_headers()
         self.wfile.write(body)
 

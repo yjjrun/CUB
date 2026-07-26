@@ -44,6 +44,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import date, datetime
@@ -271,6 +272,21 @@ def to_cub_payload(record: dict, breed: str) -> dict:
 # CUB API
 # ---------------------------------------------------------------------------
 
+def get_json(url: str, token: str | None = None) -> tuple[int, dict]:
+    headers = {"User-Agent": UA}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(url, headers=headers, method="GET")
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return response.status, json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        try:
+            return exc.code, json.loads(exc.read().decode("utf-8"))
+        except Exception:
+            return exc.code, {"error": exc.reason}
+
+
 def post_json(url: str, payload: dict, token: str | None = None) -> tuple[int, dict]:
     headers = {"Content-Type": "application/json", "User-Agent": UA}
     if token:
@@ -294,6 +310,11 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--json", metavar="PATH")
+    parser.add_argument("--delay", type=float, default=11.0,
+                        help="Seconds between posts. The API allows 30 per 5 minutes, "
+                             "so the default paces just under that (default: %(default)s)")
+    parser.add_argument("--retries", type=int, default=3,
+                        help="Retries after a rate-limit response (default: %(default)s)")
     parser.add_argument("--breed", default=DEFAULT_BREED,
                         help="Breed to record when the listing states none (default: %(default)s)")
     args = parser.parse_args()
@@ -342,9 +363,32 @@ def main() -> int:
     token = body["token"]
     print(f"Logged in as {body.get('partnerName')}.", file=sys.stderr)
 
+    # Skip anything already stored for this partner, so a re-run after a
+    # failure tops up rather than duplicating. Dogs are matched on name.
+    status, body = get_json(f"{args.base}/api/partner/dogs", token)
+    existing = {d.get("name") for d in body.get("dogs", [])} if status == 200 else set()
+    if existing:
+        print(f"{len(existing)} dog(s) already stored; those will be skipped.", file=sys.stderr)
+
+    todo = [p for p in payloads if p["name"] not in existing]
+    skipped = len(payloads) - len(todo)
+
     created, errors = 0, []
-    for payload in payloads:
-        status, body = post_json(f"{args.base}/api/dogs", payload, token)
+    for index, payload in enumerate(todo):
+        # The API allows 30 posts per 5 minutes per IP. Pace below that instead
+        # of sprinting into a 429 partway through the run.
+        if index:
+            time.sleep(args.delay)
+        for attempt in range(args.retries + 1):
+            status, body = post_json(f"{args.base}/api/dogs", payload, token)
+            if status != 429:
+                break
+            wait = int(body.get("retryAfter") or 60)
+            if attempt == args.retries:
+                break
+            print(f"  … rate limited, waiting {wait}s before retrying {payload['name']}",
+                  file=sys.stderr)
+            time.sleep(wait)
         if status == 201:
             created += 1
             print(f"  + {payload['name']} → {body.get('cluster')}", file=sys.stderr)
@@ -352,7 +396,9 @@ def main() -> int:
             errors.append((payload["name"], status, body.get("error", body)))
             print(f"  ! {payload['name']} ({status}): {body.get('error', body)}", file=sys.stderr)
 
-    print(f"\nImported {created}/{len(payloads)} dogs.", file=sys.stderr)
+    if skipped:
+        print(f"\nSkipped {skipped} already-stored dog(s).", file=sys.stderr)
+    print(f"\nImported {created}/{len(todo)} remaining dogs.", file=sys.stderr)
     if errors:
         print("Errors:", file=sys.stderr)
         for name, status, err in errors:
