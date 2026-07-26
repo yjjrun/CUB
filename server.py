@@ -874,8 +874,17 @@ class CUBHandler(BaseHTTPRequestHandler):
 
         try:
             reply = ask_claude(question, dog, history)
-        except Exception:
+        except Exception as exc:
             # Upstream failure shouldn't break the page — the client falls back.
+            # Log the cause (visible via `journalctl -u cub`) so it's diagnosable;
+            # never echo it to the client, since it can quote request details.
+            detail = getattr(exc, "read", None)
+            if callable(detail):
+                try:
+                    detail = detail().decode("utf-8", "replace")[:500]
+                except Exception:
+                    detail = None
+            self.log_message("Ask CUB upstream failure: %s %s | %s", type(exc).__name__, exc, detail or "")
             self.send_json({"error": "The AI service is unavailable.", "mode": "demo"}, HTTPStatus.BAD_GATEWAY)
             return
         self.send_json({"reply": reply, "mode": "ai"})
