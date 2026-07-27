@@ -199,7 +199,7 @@ function scoreTier(score) {
 }
 
 function matchExplanation(match, profile) {
-  const { dog, score, subscores, flags } = match;
+  const { dog, score, subscores, flags, behaviourReasons = [] } = match;
   const dogName = dog.name || "this dog";
   const dogLabel = dog.name || "This dog";
   const cluster = CLUSTERS[dog.cluster] || CLUSTERS["Golden Hearts"];
@@ -250,6 +250,15 @@ function matchExplanation(match, profile) {
     `${personalityText}: ${dogName} is classified as ${dog.cluster}, which means ${cluster.fit.toLowerCase()} Your results suggest you may be able to offer the mix of routine, empathy, activity, and boundaries this profile usually benefits from.`,
     `CUB also considered practical details. You described yourself as a ${experience}, ${awayText}, and ${preferenceText} ${householdText} These are the everyday factors that often decide whether an adoption feels manageable after the first few weeks.`,
   ];
+
+  if (behaviourReasons.length) {
+    // Straight from this dog's own C-BARQ answers, not its cluster — so two
+    // dogs in the same cluster can and should read differently here.
+    paragraphs.push(
+      `Looking at ${dogName}'s own behaviour questionnaire rather than the group average: ${dogName} `
+      + `${behaviourReasons.join("; and ")}. Worth raising with the shelter to hear how they manage it.`,
+    );
+  }
 
   if (flags.length) {
     paragraphs.push(`A note of caution: ${flags.join(" ")} This does not rule out the match, but it means you should ask the shelter about management plans, introductions, and support before deciding.`);

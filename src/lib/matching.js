@@ -2,6 +2,7 @@
 // Pure functions: they take a profile/dogs and return results (no shared state).
 
 import { breedPersonalityCluster } from "./breeds.js";
+import { elevation } from "./factorNorms.js";
 
 export const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -200,6 +201,76 @@ function careFitScore(dog, lifestyle) {
   return Math.round(clamp(commitmentScore * 0.55 + householdScore * 0.45, 0, 100));
 }
 
+// How well this dog's own C-BARQ profile fits this household.
+//
+// The cluster label alone cannot separate two dogs that landed in the same
+// group, so this reads the 13 factors directly. Each rule fires only when the
+// dog is genuinely elevated on a factor *relative to the 80k-dog population*
+// (see factorNorms.js) AND the household has the matching pressure. A dog at
+// the population median costs nothing; one near the 90th percentile costs the
+// full weight.
+//
+// Returns a 0-100 score plus the specific reasons, so results can explain
+// themselves instead of just showing a number.
+export function behaviourFit(dog, lifestyle) {
+  const f = dog.cbarqFactors;
+  if (!f) return { score: 100, reasons: [] };
+
+  const away = Number(lifestyle.hoursAway) || 0;
+  const minutes = Number(lifestyle.exerciseMinutes) || 0;
+  const kids = lifestyle.children === "yes";
+  const pets = lifestyle.otherPets === "yes";
+  const busy = lifestyle.visitors === "often";
+  const novice = lifestyle.experience === "first-time";
+  const flat = lifestyle.homeType === "HDB flat";
+
+  // [factor, household pressure 0-1, max penalty, reason]
+  const rules = [
+    ["separation", away >= 10 ? 1 : away >= 8 ? 0.7 : away >= 6 ? 0.35 : 0, 26,
+      "struggles when left alone, and this household is out for long stretches"],
+    ["energy", minutes < 30 ? 1 : minutes < 60 ? 0.6 : minutes < 90 ? 0.25 : 0, 24,
+      "needs more daily exercise than this routine offers"],
+    ["ownerAggression", kids ? 1 : novice ? 0.6 : 0.25, 30,
+      "guards food or possessions, which needs careful management"],
+    ["strangerFear", busy ? 1 : 0.3, 20,
+      "finds unfamiliar people stressful, and this home sees frequent visitors"],
+    ["strangerAggression", busy ? 0.9 : kids ? 0.7 : 0.3, 26,
+      "reacts to unfamiliar people"],
+    ["nonsocialFear", flat ? 0.8 : 0.4, 18,
+      "is noise-sensitive, which is harder in a flat with lifts and corridors"],
+    ["dogAggressionFear", pets ? 1 : 0.2, 28,
+      "is reactive to other dogs, and there are already pets at home"],
+    ["dogFear", pets ? 0.8 : 0.15, 18,
+      "is fearful of other dogs, and there are already pets at home"],
+    ["touchSensitivity", kids ? 0.9 : 0.25, 20,
+      "dislikes being handled, which is a risk around children"],
+    ["excitability", kids ? 0.6 : novice ? 0.4 : 0.15, 14,
+      "is easily wound up"],
+    ["chasing", pets ? 0.7 : 0.1, 14,
+      "has a strong chase drive, worth noting with other pets around"],
+  ];
+
+  let penalty = 0;
+  const reasons = [];
+  for (const [factor, pressure, weight, reason] of rules) {
+    if (!pressure) continue;
+    const hit = elevation(factor, f[factor]) * pressure * weight;
+    if (hit <= 0) continue;
+    penalty += hit;
+    // Only surface the ones a person would actually act on.
+    if (hit >= weight * 0.35) reasons.push(reason);
+  }
+
+  // Low trainability is the one factor where *below* average is the problem.
+  if (novice && Number.isFinite(f.trainability) && f.trainability < 2.2) {
+    const hit = Math.min(1, (2.2 - f.trainability) / 1.2) * 16;
+    penalty += hit;
+    if (hit >= 6) reasons.push("takes more training patience than a first-time owner may expect");
+  }
+
+  return { score: Math.round(clamp(100 - penalty, 0, 100)), reasons };
+}
+
 export function scoreDog(dog, profile) {
   const mbti = computeMbti(profile);
   const exerciseFits = normaliseExerciseFits(dog);
@@ -231,14 +302,20 @@ export function scoreDog(dog, profile) {
   const personalityScore = (0.85 * behaviorPersonalityScore) + (0.15 * breedPersonalityScore);
   const preferenceScore = preferenceFit(dog, profile.preferences);
   const careScore = careFitScore(dog, profile.lifestyle);
+  const behaviour = behaviourFit(dog, profile.lifestyle);
 
+  // Personality weight is split between the cluster-level MBTI fit and this
+  // dog's own questionnaire. Without the second term, every dog sharing a
+  // cluster, breed and size scores identically no matter how differently they
+  // actually behave.
   const base = (
-    0.26 * lifestyleScore
-    + 0.22 * housingScore
-    + 0.14 * expScore
-    + 0.28 * personalityScore
-    + 0.07 * preferenceScore
-    + 0.03 * careScore
+    0.24 * lifestyleScore
+    + 0.20 * housingScore
+    + 0.12 * expScore
+    + 0.20 * personalityScore
+    + 0.16 * behaviour.score
+    + 0.06 * preferenceScore
+    + 0.02 * careScore
   );
   let finalScore = Math.round(base);
   const flags = [];
@@ -273,9 +350,11 @@ export function scoreDog(dog, profile) {
       housing: Math.round(housingScore),
       experience: Math.round(expScore),
       personality: Math.round(personalityScore),
+      behaviour: behaviour.score,
       preference: Math.round(preferenceScore),
       care: Math.round(careScore),
     },
+    behaviourReasons: behaviour.reasons,
     flags,
   };
 }
