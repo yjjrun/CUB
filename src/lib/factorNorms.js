@@ -27,6 +27,32 @@ export const FACTOR_NORMS = {
   energy:             { mean: 2.10, sd: 1.07, p50: 2.00, p75: 3.00, p90: 3.50 },
 };
 
+// Population spread of the four composite demands (see dogDemandVector).
+//
+// Averaging several 0-1 factor positions pulls almost every dog toward the
+// middle: measured over the same 80,611 dogs, the composites only occupy
+// ~0.46-0.62 of the 0-1 range and centre near 0.45-0.50. Scaled naively that
+// makes every dog demand "about 5 out of 10" on everything, so no owner
+// profile can prefer one dog over another.
+//
+// Rescaling each composite from its own 5th-95th percentile onto 0-10 restores
+// the full range and makes dog demands comparable to the published cluster
+// demands, which span 2-9.
+export const DEMAND_NORMS = {
+  stimulation: { p5: 0.185, p95: 0.805 },
+  structure:   { p5: 0.273, p95: 0.769 },
+  empathy:     { p5: 0.284, p95: 0.819 },
+  firmness:    { p5: 0.312, p95: 0.770 },
+};
+
+/** Map a raw 0-1 composite onto 0-10 using its population spread. */
+export function scaleDemand(key, raw) {
+  const n = DEMAND_NORMS[key];
+  if (!n) return 10 * Math.max(0, Math.min(1, raw));
+  const span = n.p95 - n.p5 || 1;
+  return 10 * Math.max(0, Math.min(1, (raw - n.p5) / span));
+}
+
 export const FACTOR_SOURCE = {
   dataset: "UPenn C-BARQ, 80,611 questionnaires",
   note: "Percentiles computed per factor over non-missing responses.",
@@ -40,6 +66,21 @@ export function zScore(factor, value) {
   const norm = FACTOR_NORMS[factor];
   if (!norm || !Number.isFinite(value)) return 0;
   return (value - norm.mean) / (norm.sd || 1);
+}
+
+/**
+ * Where this dog sits in the population on a 0-1 scale: 0.5 is the average
+ * dog, 0 is roughly two SDs below, 1 is roughly two SDs above.
+ *
+ * Unlike elevation(), this covers the full range, so it can express "unusually
+ * calm" as well as "unusually excitable" — needed when deriving how much
+ * stimulation or firmness a dog actually asks for.
+ */
+export function positionOf(factor, value) {
+  const norm = FACTOR_NORMS[factor];
+  if (!norm || !Number.isFinite(value)) return 0.5;
+  const z = (value - norm.mean) / (norm.sd || 1);
+  return Math.max(0, Math.min(1, 0.5 + z / 4));
 }
 
 /**

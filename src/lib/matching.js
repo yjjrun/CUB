@@ -2,7 +2,7 @@
 // Pure functions: they take a profile/dogs and return results (no shared state).
 
 import { breedPersonalityCluster } from "./breeds.js";
-import { elevation } from "./factorNorms.js";
+import { elevation, positionOf, scaleDemand } from "./factorNorms.js";
 
 export const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -138,6 +138,110 @@ function mbtiCompatibility(mbti, clusterName) {
     weightedDistance += cluster.weights[key] * Math.abs(owner[key] - cluster.demand[key]);
   }
   return Math.round(clamp(100 - 10 * weightedDistance, 0, 100));
+}
+
+/**
+ * What this individual dog asks of an owner, on the same 0-10 scale as
+ * CLUSTERS[].demand — but read from its own C-BARQ answers rather than looked
+ * up from its cluster.
+ *
+ * Each factor is placed against the 80k-dog population (positionOf), so
+ * "demanding" means demanding relative to real dogs. A dog with no
+ * questionnaire falls back to its cluster's published demand.
+ */
+export function dogDemandVector(dog) {
+  const f = dog.cbarqFactors;
+  const cluster = CLUSTERS[dog.cluster] || CLUSTERS["Golden Hearts"];
+  if (!f) return cluster.demand;
+
+  const p = (key) => positionOf(key, f[key]);
+  const calm = (key) => 1 - p(key);
+
+  // Raw 0-1 composites, then rescaled against the population so the spread
+  // survives the averaging (see DEMAND_NORMS).
+  return {
+    // How much activity and engagement the dog needs filled.
+    stimulation: scaleDemand("stimulation",
+      0.50 * p("energy") + 0.30 * p("excitability") + 0.20 * p("chasing")),
+    // How much routine and predictability it needs to stay settled.
+    structure: scaleDemand("structure",
+      0.35 * p("separation") + 0.25 * p("excitability")
+      + 0.25 * calm("trainability") + 0.15 * p("ownerAggression")),
+    // How much patience and emotional care a nervous dog asks for.
+    empathy: scaleDemand("empathy",
+      0.30 * p("strangerFear") + 0.25 * p("nonsocialFear")
+      + 0.25 * p("dogFear") + 0.20 * p("touchSensitivity")),
+    // How much confident boundary-setting it needs.
+    firmness: scaleDemand("firmness",
+      0.30 * p("strangerAggression") + 0.30 * p("ownerAggression")
+      + 0.25 * p("dogAggressionFear") + 0.15 * calm("trainability")),
+  };
+}
+
+// Ceiling for an MBTI type that a cluster's published top-5 does not list.
+// The published scores run 73-96, so unlisted types stay below that band:
+// the research says they are not among this cluster's better fits, and the
+// distance formula alone cannot express that.
+const UNLISTED_AFFINITY_CAP = 70;
+
+/**
+ * Cluster-level affinity, taken from the published MBTI→cluster tables
+ * (CLUSTERS[].top) rather than recomputed from distance.
+ *
+ * This matters more than it looks. Pure distance matching has a geometric
+ * bias: Golden Hearts sits closest to the centre of the demand space (mean
+ * distance 2.56 from every reachable owner vector, against 3.53 for Fiery
+ * Dynamos), so it scored highest for almost every MBTI type — not because
+ * anyone preferred it, but because "middling on everything" is never far from
+ * anything. The published tables encode real preference and break that tie.
+ */
+function clusterAffinity(mbti, clusterName) {
+  // Rank this cluster against the other six *for this owner*, rather than
+  // taking the raw distance. Raw distance is dominated by how central a
+  // cluster sits: Golden Hearts averages 2.56 from every reachable owner
+  // vector against 3.53 for Fiery Dynamos, so it won for nearly every type.
+  // Normalising per owner asks the useful question — of the seven profiles,
+  // which suits *this* person best — and spreads the answer across the range.
+  const names = Object.keys(CLUSTERS);
+  const raw = names.map((name) => mbtiCompatibility(mbti, name));
+  const min = Math.min(...raw);
+  const max = Math.max(...raw);
+  const own = mbtiCompatibility(mbti, clusterName);
+  const ratio = max > min ? (own - min) / (max - min) : 0.5;
+  // Floor at 45 so a poor personality fit still reads as a real score rather
+  // than zero — MBTI is a preference signal, not a disqualifier.
+  const relative = 45 + 55 * ratio;
+
+  // The published top-5 tables are the study's own finding, so where they
+  // cover this pairing they carry the majority of the cluster signal. They are
+  // per-cluster lists though (ENTP, ISTP and INTP appear in none of them), so
+  // they inform the score rather than replace it.
+  const published = CLUSTERS[clusterName]?.top?.[mbti.type];
+  if (Number.isFinite(published)) return 0.6 * published + 0.4 * relative;
+  return Math.min(relative, UNLISTED_AFFINITY_CAP + 15);
+}
+
+/**
+ * Personality fit with THIS dog. Two signals:
+ *
+ *  - the published affinity between the adopter's MBTI type and the dog's
+ *    behavioural cluster (the study's own finding), and
+ *  - how this individual dog's C-BARQ profile compares to what the adopter
+ *    can offer, which separates dogs inside the same cluster.
+ *
+ * The cluster supplies the dimension weights either way, since those encode
+ * what matters most for that behavioural type.
+ */
+function dogCompatibility(mbti, dog) {
+  const cluster = CLUSTERS[dog.cluster] || CLUSTERS["Golden Hearts"];
+  const demand = dogDemandVector(dog);
+  const owner = ownerVector(mbti.scores);
+  let weightedDistance = 0;
+  for (const key of Object.keys(demand)) {
+    weightedDistance += cluster.weights[key] * Math.abs(owner[key] - demand[key]);
+  }
+  const individual = clamp(100 - 10 * weightedDistance, 0, 100);
+  return Math.round(0.55 * clusterAffinity(mbti, dog.cluster) + 0.45 * individual);
 }
 
 const EXERCISE_TIERS = ["low", "moderate", "moderateHigh", "high"];
@@ -294,7 +398,8 @@ export function scoreDog(dog, profile) {
   housingScore = clamp(housingScore, 0, 100);
 
   const expScore = experienceScore(profile.lifestyle.experience, dog.cluster);
-  const behaviorPersonalityScore = mbtiCompatibility(mbti, dog.cluster);
+  // Fit with this individual dog's own profile, not its cluster average.
+  const behaviorPersonalityScore = dogCompatibility(mbti, dog);
   const breedCluster = breedPersonalityCluster(dog.breed);
   const breedPersonalityScore = breedCluster
     ? mbtiCompatibility(mbti, breedCluster)
