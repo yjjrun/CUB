@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { MATCH_STEPS, DEFAULT_PROFILE } from "../lib/wizard.js";
-import { getMatches, CLUSTERS, clusterTraits, experienceLabel, APP_LOGO } from "../lib/matching.js";
+import { getMatches, CLUSTERS, clusterTraits, experienceLabel, colourMatches, APP_LOGO } from "../lib/matching.js";
 import { loadDogs } from "../api.js";
+
+/** Sentence-case a stored value for display ("weekly" -> "Weekly"). */
+const titleCase = (value) => {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1);
+};
 
 export default function MatchPage({ navigate }) {
   const [dogs, setDogs] = useState([]);
@@ -281,8 +288,9 @@ function comparisonRows(match, profile) {
     { label: "Energy level", value: dogExercise, matched: subscores.lifestyle >= 65 },
     { label: "Housing", value: dog.hdbApproved ? "HDB-approved" : "Not HDB-approved", matched: subscores.housing >= 70 },
     { label: "Experience", value: experienceLabel(dog.cluster), matched: rank[profile.lifestyle.experience] >= rank[needed] },
-    { label: "Care routine", value: profile.lifestyle.trainingCommitment || "Not set", matched: subscores.care >= 65 },
+    { label: "Care routine", value: titleCase(profile.lifestyle.trainingCommitment) || "Not set", matched: subscores.care >= 65 },
     { label: "Household", value: `${profile.lifestyle.children === "yes" ? "Children" : "No children"} · ${profile.lifestyle.otherPets === "yes" ? "Other pets" : "No other pets"}`, matched: subscores.care >= 65 },
-    { label: "Size", value: dog.size || "Not set", matched: profile.preferences.size === "Any" || profile.preferences.size === dog.size },
+    { label: "Size", value: titleCase(dog.size) || "Not set", matched: profile.preferences.size === "Any" || profile.preferences.size === dog.size },
+    { label: "Coat colour", value: titleCase(dog.color) || "Not set", matched: colourMatches(dog.color, profile.preferences.color) },
   ];
 }

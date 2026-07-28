@@ -275,10 +275,30 @@ function experienceScore(experience, clusterName) {
   return Math.min(100, level + 18);
 }
 
+// Each coat preference covers the range of words shelters actually write, and
+// matches what the wizard promises the option means — picking "Golden" offers
+// "Golden, yellow, or tan coats", so a dog listed as "Tan" has to count.
+// Without this a literal substring match rejected every tan dog.
+const COLOUR_GROUPS = {
+  brown: ["brown", "chocolate", "liver", "brindle"],
+  black: ["black"],
+  white: ["white", "cream"],
+  golden: ["golden", "gold", "yellow", "tan", "fawn", "sandy"],
+};
+
+/** Does this dog's coat satisfy the adopter's colour preference? */
+export function colourMatches(dogColour, preference) {
+  if (!preference) return true;
+  const coat = String(dogColour || "").toLowerCase();
+  if (!coat) return false;
+  const words = COLOUR_GROUPS[preference.toLowerCase()] || [preference.toLowerCase()];
+  return words.some((word) => coat.includes(word));
+}
+
 function preferenceFit(dog, preferences) {
   let score = 100;
   if (preferences.size !== "Any" && dog.size !== preferences.size) score -= 24;
-  if (preferences.color && !dog.color.toLowerCase().includes(preferences.color.toLowerCase())) score -= 18;
+  if (preferences.color && !colourMatches(dog.color, preferences.color)) score -= 34;
   if (preferences.breed && !dog.breed.toLowerCase().includes(preferences.breed.toLowerCase())) score -= 28;
   return clamp(score, 0, 100);
 }
@@ -413,13 +433,18 @@ export function scoreDog(dog, profile) {
   // dog's own questionnaire. Without the second term, every dog sharing a
   // cluster, breed and size scores identically no matter how differently they
   // actually behave.
+  // Stated preferences (size, coat colour, breed) carry more weight than they
+  // did: at 0.06 a colour mismatch moved the total by about one point, so
+  // choosing a colour had no visible effect on the ranking. Welfare terms
+  // still dominate — a cosmetic preference should shuffle comparable dogs,
+  // not outrank housing or behaviour fit.
   const base = (
-    0.24 * lifestyleScore
-    + 0.20 * housingScore
-    + 0.12 * expScore
-    + 0.20 * personalityScore
+    0.23 * lifestyleScore
+    + 0.19 * housingScore
+    + 0.11 * expScore
+    + 0.19 * personalityScore
     + 0.16 * behaviour.score
-    + 0.06 * preferenceScore
+    + 0.10 * preferenceScore
     + 0.02 * careScore
   );
   let finalScore = Math.round(base);
