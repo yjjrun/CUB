@@ -27,12 +27,14 @@ const setLifestyle = (p, key, value) => ({ ...p, lifestyle: { ...p.lifestyle, [k
 const setPref = (p, key, value) => ({ ...p, preferences: { ...p.preferences, [key]: value } });
 const setAnswer = (p, id, value) => ({ ...p, answers: { ...p.answers, [id]: Number(value) } });
 
+// Listed most-positive first so "Strongly agree" sits at the top of the
+// stack. The `value` travels with each label, so scoring is unchanged.
 const LIKERT_OPTIONS = [
-  { value: 1, label: "Strongly disagree", sub: "This does not sound like me." },
-  { value: 2, label: "Disagree", sub: "Only slightly true for me." },
-  { value: 3, label: "Neutral", sub: "Somewhere in the middle." },
-  { value: 4, label: "Agree", sub: "This mostly sounds like me." },
   { value: 5, label: "Strongly agree", sub: "This describes me very well." },
+  { value: 4, label: "Agree", sub: "This mostly sounds like me." },
+  { value: 3, label: "Neutral", sub: "Somewhere in the middle." },
+  { value: 2, label: "Disagree", sub: "Only slightly true for me." },
+  { value: 1, label: "Strongly disagree", sub: "This does not sound like me." },
 ];
 
 const PERSONALITY_STEPS = MBTI_QUESTIONS.map(([id, axis, , label], index) => ({

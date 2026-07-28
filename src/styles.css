@@ -174,7 +174,8 @@ img {
 }
 
 .nav-menu:hover .nav-submenu,
-.nav-menu:focus-within .nav-submenu {
+.nav-menu:focus-within .nav-submenu,
+.nav-menu.open .nav-submenu {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
@@ -1752,9 +1753,12 @@ input[type="range"] {
     gap: 6px;
   }
 
+  /* Tap "About us" to reveal FAQs and Our Team, rather than showing them
+     permanently: there is no hover on a touchscreen, and the row cost a line
+     of the header on every page. */
   .nav-submenu {
     position: static;
-    display: flex;
+    display: none;
     justify-content: center;
     gap: 8px;
     min-width: 0;
@@ -1765,6 +1769,10 @@ input[type="range"] {
     opacity: 1;
     pointer-events: auto;
     transform: none;
+  }
+
+  .nav-menu.open .nav-submenu {
+    display: flex;
   }
 
   .nav-submenu button {
