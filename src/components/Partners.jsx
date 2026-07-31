@@ -1,11 +1,14 @@
 const PARTNERS = [
   { name: "University of Pennsylvania", logo: "/assets/partners/penn.png" },
-  { name: "National University of Singapore", logo: "/assets/partners/nus.png" },
+  { name: "National University of Singapore", logo: "/assets/partners/nus.png", active: false },
+  { name: "MercyLight Animal Rescue & Sanctuary Limited", logo: "/assets/partners/mercylight.png" },
+  { name: "Golden Paws", logo: "/assets/partners/golden-paws.png" },
   { name: "National Parks Board", logo: "/assets/partners/national-parks.png" },
 ];
 
 export default function Partners() {
-  const marqueePartners = [...PARTNERS, ...PARTNERS];
+  const visiblePartners = PARTNERS.filter((partner) => partner.active !== false);
+  const marqueePartners = [...visiblePartners, ...visiblePartners];
 
   return (
     <section className="partners-strip" aria-labelledby="partners-title">
