@@ -1021,6 +1021,22 @@ img {
   object-fit: contain;
 }
 
+.partner-logo--circle {
+  width: 118px;
+  height: 118px;
+  overflow: hidden;
+  border: 1px solid rgba(218, 200, 184, 0.9);
+  border-radius: 50%;
+  background: var(--paper);
+  box-shadow: 0 8px 20px rgba(74, 36, 17, 0.08);
+}
+
+.partner-logo--circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 @keyframes partners-scroll {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
