@@ -1,8 +1,21 @@
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(message, status) {
     super(message);
     this.status = status;
   }
+}
+
+function authHeaders(token, extra = {}) {
+  return {
+    ...extra,
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+async function readJson(res, fallbackMessage) {
+  const payload = await res.json();
+  if (!res.ok) throw new ApiError(payload.error || fallbackMessage, res.status);
+  return payload;
 }
 
 export async function loadDogs() {
@@ -108,4 +121,54 @@ export async function deleteAdminPartner(token, partnerId) {
   const payload = await res.json();
   if (!res.ok) throw new ApiError(payload.error || "Could not delete partner.", res.status);
   return payload;
+}
+
+export async function createProfile(token, profile) {
+  const res = await fetch("/api/account/profile", {
+    method: "POST",
+    headers: authHeaders(token, { "Content-Type": "application/json" }),
+    body: JSON.stringify(profile),
+  });
+  return readJson(res, "Could not save your profile.");
+}
+
+export async function loadSavedMatches(token) {
+  const res = await fetch("/api/account/saved-matches", {
+    headers: authHeaders(token),
+  });
+  const payload = await readJson(res, "Could not load saved matches.");
+  return payload.matches || [];
+}
+
+export async function saveMatch(token, match) {
+  const res = await fetch("/api/account/saved-matches", {
+    method: "POST",
+    headers: authHeaders(token, { "Content-Type": "application/json" }),
+    body: JSON.stringify(match),
+  });
+  return readJson(res, "Could not save this match.");
+}
+
+export async function removeSavedMatch(token, dogId) {
+  const res = await fetch(`/api/account/saved-matches/${encodeURIComponent(dogId)}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  return readJson(res, "Could not remove this match.");
+}
+
+export async function loadCareData(token) {
+  const res = await fetch("/api/account/care-data", {
+    headers: authHeaders(token),
+  });
+  return readJson(res, "Could not load CUB Care data.");
+}
+
+export async function saveCareData(token, careData) {
+  const res = await fetch("/api/account/care-data", {
+    method: "POST",
+    headers: authHeaders(token, { "Content-Type": "application/json" }),
+    body: JSON.stringify({ careData }),
+  });
+  return readJson(res, "Could not save CUB Care data.");
 }

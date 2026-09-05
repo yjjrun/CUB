@@ -42,9 +42,18 @@ if [ ! -f "$DATA_DIR/cub.env" ]; then
   chmod 600 "$DATA_DIR/cub.env"
 fi
 
-# Build the React frontend into dist/ (served statically by nginx).
-sudo -u cub npm --prefix "$APP_DIR" ci
-sudo -u cub npm --prefix "$APP_DIR" run build
+# Build the React frontend into dist/ (served statically by nginx). The
+# VITE_* Supabase values are public but must be available at build time.
+sudo -u cub bash -c '
+  set -euo pipefail
+  if [ -f /var/lib/cub/cub.env ]; then
+    set -a
+    . /var/lib/cub/cub.env
+    set +a
+  fi
+  npm --prefix /opt/cub install
+  npm --prefix /opt/cub run build
+'
 
 # systemd unit (Python JSON API) + nginx (serves dist/, proxies /api).
 install -m 0644 "$APP_DIR/deploy/cub.service" /etc/systemd/system/cub.service

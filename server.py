@@ -16,6 +16,8 @@ from datetime import datetime, timezone
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib import error as urlerror
+from urllib import request as urlrequest
 from urllib.parse import unquote, urlparse
 
 
@@ -31,16 +33,27 @@ PUBLIC_DOMAIN = "https://meetmycub.com"
 # the fallback here is only for local development.
 CODE_PEPPER = os.environ.get("CUB_CODE_PEPPER", "dev-only-pepper-change-me").encode("utf-8")
 ADMIN_CODE = os.environ.get("CUB_ADMIN_CODE", "")
+SUPABASE_URL = (os.environ.get("SUPABASE_URL") or os.environ.get("VITE_SUPABASE_URL") or "").rstrip("/")
+SUPABASE_PUBLISHABLE_KEY = (
+    os.environ.get("SUPABASE_PUBLISHABLE_KEY")
+    or os.environ.get("SUPABASE_ANON_KEY")
+    or os.environ.get("VITE_SUPABASE_PUBLISHABLE_KEY")
+    or os.environ.get("VITE_SUPABASE_ANON_KEY")
+    or ""
+)
 SESSION_TTL_SECONDS = 12 * 60 * 60
 RATE_LIMIT_WINDOW_SECONDS = 300
 LOGIN_RATE_LIMIT = 8
 POST_RATE_LIMIT = 30
+USER_CACHE_TTL_SECONDS = 60
 
 URL_SCHEME_RE = re.compile(r"^https?://", re.IGNORECASE)
 IMAGE_DATA_URI_RE = re.compile(r"^data:image/(png|jpe?g|gif|webp);base64,", re.IGNORECASE)
 
 _sessions: dict[str, dict] = {}
 _sessions_lock = threading.Lock()
+_user_cache: dict[str, tuple[float, dict]] = {}
+_user_cache_lock = threading.Lock()
 _rate_buckets: dict[tuple[str, str], list[float]] = {}
 _rate_lock = threading.Lock()
 FACTOR_FIELDS = [
@@ -267,6 +280,42 @@ def init_db() -> None:
             )
             """
         )
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS profiles (
+                user_id TEXT PRIMARY KEY,
+                email TEXT,
+                name TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS saved_matches (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                dog_id TEXT NOT NULL,
+                compatibility_score INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                UNIQUE(user_id, dog_id)
+            )
+            """
+        )
+        con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS care_data (
+                user_id TEXT PRIMARY KEY,
+                dog_profile TEXT NOT NULL DEFAULT '{}',
+                reminders TEXT NOT NULL DEFAULT '[]',
+                checklists TEXT NOT NULL DEFAULT '{}',
+                scan_history TEXT NOT NULL DEFAULT '[]',
+                raw_state TEXT NOT NULL DEFAULT '{}',
+                updated_at TEXT NOT NULL
+            )
+            """
+        )
         columns = {row[1] for row in con.execute("PRAGMA table_info(dogs)").fetchall()}
         if "age_months" not in columns:
             con.execute("ALTER TABLE dogs ADD COLUMN age_months INTEGER")
@@ -278,7 +327,231 @@ def init_db() -> None:
             con.execute("ALTER TABLE dogs ADD COLUMN exercise_needs TEXT NOT NULL DEFAULT '[]'")
         if "partner_id" not in columns:
             con.execute("ALTER TABLE dogs ADD COLUMN partner_id TEXT")
+        care_columns = {row[1] for row in con.execute("PRAGMA table_info(care_data)").fetchall()}
+        if "raw_state" not in care_columns:
+            con.execute("ALTER TABLE care_data ADD COLUMN raw_state TEXT NOT NULL DEFAULT '{}'")
         con.commit()
+
+
+class SupabaseConfigError(RuntimeError):
+    pass
+
+
+class SupabaseAuthError(RuntimeError):
+    pass
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def verify_supabase_user(token: str) -> dict:
+    if not token:
+        raise SupabaseAuthError("Adopter login required.")
+    if not SUPABASE_URL or not SUPABASE_PUBLISHABLE_KEY:
+        raise SupabaseConfigError("Supabase Auth is not configured on this server.")
+
+    now = time.monotonic()
+    with _user_cache_lock:
+        cached = _user_cache.get(token)
+        if cached and cached[0] > now:
+            return cached[1]
+
+    req = urlrequest.Request(
+        f"{SUPABASE_URL}/auth/v1/user",
+        headers={
+            "apikey": SUPABASE_PUBLISHABLE_KEY,
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+        },
+        method="GET",
+    )
+    try:
+        with urlrequest.urlopen(req, timeout=8) as res:
+            payload = json.loads(res.read().decode("utf-8"))
+    except urlerror.HTTPError as exc:
+        if exc.code in {401, 403}:
+            raise SupabaseAuthError("Adopter login required.") from exc
+        raise RuntimeError("Could not verify Supabase session.") from exc
+    except (urlerror.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        raise RuntimeError("Could not verify Supabase session.") from exc
+
+    user_id = str(payload.get("id") or "").strip()
+    if not user_id:
+        raise SupabaseAuthError("Adopter login required.")
+    metadata = payload.get("user_metadata") if isinstance(payload.get("user_metadata"), dict) else {}
+    user = {
+        "id": user_id,
+        "email": str(payload.get("email") or ""),
+        "name": str(metadata.get("name") or metadata.get("full_name") or ""),
+    }
+    with _user_cache_lock:
+        _user_cache[token] = (now + USER_CACHE_TTL_SECONDS, user)
+    return user
+
+
+def ensure_profile(user: dict) -> None:
+    now = now_iso()
+    with sqlite3.connect(DB_PATH) as con:
+        con.execute(
+            """
+            INSERT INTO profiles (user_id, email, name, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                email = excluded.email,
+                updated_at = excluded.updated_at
+            """,
+            (user["id"], user.get("email"), user.get("name"), now, now),
+        )
+        con.commit()
+
+
+def save_profile(user: dict, payload: dict) -> dict:
+    name = str(payload.get("name") or user.get("name") or "").strip()
+    now = now_iso()
+    with sqlite3.connect(DB_PATH) as con:
+        con.execute(
+            """
+            INSERT INTO profiles (user_id, email, name, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                email = excluded.email,
+                name = excluded.name,
+                updated_at = excluded.updated_at
+            """,
+            (user["id"], user.get("email"), name, now, now),
+        )
+        con.commit()
+    return {"profile": {"userId": user["id"], "email": user.get("email"), "name": name, "updatedAt": now}}
+
+
+def get_profile(user: dict) -> dict:
+    with sqlite3.connect(DB_PATH) as con:
+        con.row_factory = sqlite3.Row
+        row = con.execute("SELECT * FROM profiles WHERE user_id = ?", (user["id"],)).fetchone()
+    if not row:
+        return {"profile": {"userId": user["id"], "email": user.get("email"), "name": user.get("name"), "updatedAt": None}}
+    return {
+        "profile": {
+            "userId": row["user_id"],
+            "email": row["email"],
+            "name": row["name"],
+            "createdAt": row["created_at"],
+            "updatedAt": row["updated_at"],
+        },
+    }
+
+
+def list_saved_matches(user_id: str) -> list[dict]:
+    with sqlite3.connect(DB_PATH) as con:
+        con.row_factory = sqlite3.Row
+        rows = con.execute(
+            """
+            SELECT saved_matches.dog_id, saved_matches.compatibility_score,
+                   saved_matches.created_at, dogs.name, dogs.breed,
+                   dogs.image_url, dogs.contact_url, dogs.shelter
+            FROM saved_matches
+            LEFT JOIN dogs ON dogs.id = saved_matches.dog_id
+            WHERE saved_matches.user_id = ?
+            ORDER BY saved_matches.created_at DESC
+            """,
+            (user_id,),
+        ).fetchall()
+    return [
+        {
+            "dogId": row["dog_id"],
+            "compatibilityScore": row["compatibility_score"],
+            "createdAt": row["created_at"],
+            "dogName": row["name"],
+            "breed": row["breed"],
+            "imageUrl": row["image_url"],
+            "contactUrl": row["contact_url"],
+            "shelter": row["shelter"],
+        }
+        for row in rows
+    ]
+
+
+def save_user_match(user_id: str, payload: dict) -> dict:
+    dog_id = str(payload.get("dogId") or "").strip()
+    if not dog_id:
+        raise ValueError("Dog id is required.")
+    try:
+        score = int(payload.get("compatibilityScore"))
+    except (TypeError, ValueError):
+        score = 0
+    score = int(clamp(score, 0, 100))
+    now = now_iso()
+    with sqlite3.connect(DB_PATH) as con:
+        exists = con.execute("SELECT 1 FROM dogs WHERE id = ?", (dog_id,)).fetchone()
+        if not exists:
+            raise ValueError("Dog record not found.")
+        con.execute(
+            """
+            INSERT INTO saved_matches (id, user_id, dog_id, compatibility_score, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(user_id, dog_id) DO UPDATE SET
+                compatibility_score = excluded.compatibility_score,
+                created_at = excluded.created_at
+            """,
+            (str(uuid.uuid4()), user_id, dog_id, score, now),
+        )
+        con.commit()
+    return {"ok": True, "match": {"dogId": dog_id, "compatibilityScore": score, "createdAt": now}}
+
+
+def delete_user_match(user_id: str, dog_id: str) -> bool:
+    with sqlite3.connect(DB_PATH) as con:
+        cur = con.execute("DELETE FROM saved_matches WHERE user_id = ? AND dog_id = ?", (user_id, dog_id))
+        con.commit()
+    return cur.rowcount > 0
+
+
+def list_checklists(care_data: dict) -> dict:
+    return {key: value for key, value in care_data.items() if key.startswith("checklist:")}
+
+
+def get_user_care_data(user_id: str) -> dict:
+    with sqlite3.connect(DB_PATH) as con:
+        con.row_factory = sqlite3.Row
+        row = con.execute("SELECT raw_state, updated_at FROM care_data WHERE user_id = ?", (user_id,)).fetchone()
+    if not row:
+        return {"careData": {}, "updatedAt": None}
+    return {"careData": json.loads(row["raw_state"] or "{}"), "updatedAt": row["updated_at"]}
+
+
+def save_user_care_data(user_id: str, payload: dict) -> dict:
+    care_data = payload.get("careData")
+    if not isinstance(care_data, dict):
+        raise ValueError("CUB Care data must be an object.")
+    now = now_iso()
+    with sqlite3.connect(DB_PATH) as con:
+        con.execute(
+            """
+            INSERT INTO care_data (
+                user_id, dog_profile, reminders, checklists, scan_history, raw_state, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                dog_profile = excluded.dog_profile,
+                reminders = excluded.reminders,
+                checklists = excluded.checklists,
+                scan_history = excluded.scan_history,
+                raw_state = excluded.raw_state,
+                updated_at = excluded.updated_at
+            """,
+            (
+                user_id,
+                json.dumps(care_data.get("dog_profile") or {}, sort_keys=True),
+                json.dumps(care_data.get("reminders") or [], sort_keys=True),
+                json.dumps(list_checklists(care_data), sort_keys=True),
+                json.dumps(care_data.get("scans") or [], sort_keys=True),
+                json.dumps(care_data, sort_keys=True),
+                now,
+            ),
+        )
+        con.commit()
+    return {"ok": True, "updatedAt": now}
 
 
 def hash_code(code: str) -> str:
@@ -526,16 +799,24 @@ def admin_csv() -> str:
 def delete_dog(dog_id: str) -> bool:
     with sqlite3.connect(DB_PATH) as con:
         cur = con.execute("DELETE FROM dogs WHERE id = ?", (dog_id,))
+        if cur.rowcount:
+            con.execute("DELETE FROM saved_matches WHERE dog_id = ?", (dog_id,))
         con.commit()
     return cur.rowcount > 0
 
 
 def delete_partner(partner_id: str) -> tuple[bool, int]:
     with sqlite3.connect(DB_PATH) as con:
+        dog_ids = [
+            row[0]
+            for row in con.execute("SELECT id FROM dogs WHERE partner_id = ?", (partner_id,)).fetchall()
+        ]
         dog_count = con.execute("SELECT COUNT(*) FROM dogs WHERE partner_id = ?", (partner_id,)).fetchone()[0]
         cur = con.execute("DELETE FROM partners WHERE id = ?", (partner_id,))
         if cur.rowcount:
             con.execute("DELETE FROM dogs WHERE partner_id = ?", (partner_id,))
+            if dog_ids:
+                con.executemany("DELETE FROM saved_matches WHERE dog_id = ?", [(dog_id,) for dog_id in dog_ids])
         con.commit()
     return cur.rowcount > 0, dog_count
 
@@ -639,6 +920,24 @@ class CUBHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/dogs":
             self.send_json({"dogs": [public_dog_view(dog) for dog in list_dogs()]})
             return
+        if parsed.path == "/api/account/profile":
+            user = self.require_user()
+            if user is None:
+                return
+            self.send_json(get_profile(user))
+            return
+        if parsed.path == "/api/account/saved-matches":
+            user = self.require_user()
+            if user is None:
+                return
+            self.send_json({"matches": list_saved_matches(user["id"])})
+            return
+        if parsed.path == "/api/account/care-data":
+            user = self.require_user()
+            if user is None:
+                return
+            self.send_json(get_user_care_data(user["id"]))
+            return
         if parsed.path == "/api/partner/dogs":
             session = self.require_session()
             if session is None:
@@ -668,6 +967,15 @@ class CUBHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/admin/partners":
             self.handle_admin_create_partner()
             return
+        if parsed.path == "/api/account/profile":
+            self.handle_account_profile()
+            return
+        if parsed.path == "/api/account/saved-matches":
+            self.handle_account_save_match()
+            return
+        if parsed.path == "/api/account/care-data":
+            self.handle_account_care_data()
+            return
         if parsed.path != "/api/dogs":
             self.send_error(HTTPStatus.NOT_FOUND)
             return
@@ -696,6 +1004,19 @@ class CUBHandler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path.startswith("/api/account/saved-matches/"):
+            user = self.require_user()
+            if user is None:
+                return
+            dog_id = unquote(parsed.path.rsplit("/", 1)[-1])
+            if not dog_id:
+                self.send_json({"error": "Dog id is required."}, HTTPStatus.BAD_REQUEST)
+                return
+            if not delete_user_match(user["id"], dog_id):
+                self.send_json({"error": "Saved match not found."}, HTTPStatus.NOT_FOUND)
+                return
+            self.send_json({"ok": True})
+            return
         if self.require_admin_session() is None:
             return
         if parsed.path.startswith("/api/admin/dogs/"):
@@ -771,6 +1092,40 @@ class CUBHandler(BaseHTTPRequestHandler):
         except json.JSONDecodeError:
             self.send_json({"error": "Request body must be JSON."}, HTTPStatus.BAD_REQUEST)
 
+    def handle_account_profile(self) -> None:
+        user = self.require_user()
+        if user is None:
+            return
+        try:
+            payload = self.read_json_body()
+            self.send_json(save_profile(user, payload))
+        except json.JSONDecodeError:
+            self.send_json({"error": "Request body must be JSON."}, HTTPStatus.BAD_REQUEST)
+
+    def handle_account_save_match(self) -> None:
+        user = self.require_user()
+        if user is None:
+            return
+        try:
+            payload = self.read_json_body()
+            self.send_json(save_user_match(user["id"], payload), HTTPStatus.CREATED)
+        except ValueError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+        except json.JSONDecodeError:
+            self.send_json({"error": "Request body must be JSON."}, HTTPStatus.BAD_REQUEST)
+
+    def handle_account_care_data(self) -> None:
+        user = self.require_user()
+        if user is None:
+            return
+        try:
+            payload = self.read_json_body()
+            self.send_json(save_user_care_data(user["id"], payload))
+        except ValueError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+        except json.JSONDecodeError:
+            self.send_json({"error": "Request body must be JSON."}, HTTPStatus.BAD_REQUEST)
+
     def require_session(self) -> dict | None:
         header = self.headers.get("Authorization", "")
         token = header[len("Bearer "):] if header.startswith("Bearer ") else ""
@@ -789,13 +1144,31 @@ class CUBHandler(BaseHTTPRequestHandler):
             return None
         return session
 
+    def require_user(self) -> dict | None:
+        header = self.headers.get("Authorization", "")
+        token = header[len("Bearer "):] if header.startswith("Bearer ") else ""
+        try:
+            user = verify_supabase_user(token)
+            ensure_profile(user)
+            return user
+        except SupabaseConfigError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.SERVICE_UNAVAILABLE)
+        except SupabaseAuthError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.UNAUTHORIZED)
+        except RuntimeError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.BAD_GATEWAY)
+        return None
+
     def read_json_body(self) -> dict:
         length = int(self.headers.get("content-length", "0"))
         raw = self.rfile.read(length).decode("utf-8") if length else ""
         return json.loads(raw or "{}")
 
     def serve_static(self, raw_path: str) -> None:
-        if raw_path in {"/", "/care", "/match", "/partner", "/shelter", "/faq", "/faqs"}:
+        if raw_path in {
+            "/", "/care", "/match", "/partner", "/shelter", "/faq", "/faqs",
+            "/about/faq", "/about/team", "/login", "/signup", "/forgot-password", "/profile",
+        }:
             target = ROOT / "index.html"
         else:
             safe_path = unquote(raw_path).lstrip("/")

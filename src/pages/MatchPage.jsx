@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { MATCH_STEPS, DEFAULT_PROFILE } from "../lib/wizard.js";
 import { getMatches, CLUSTERS, clusterTraits, experienceLabel, colourMatches, APP_LOGO } from "../lib/matching.js";
-import { loadDogs } from "../api.js";
+import { loadDogs, saveMatch } from "../api.js";
 
 /** Sentence-case a stored value for display ("weekly" -> "Weekly"). */
 const titleCase = (value) => {
@@ -10,7 +10,7 @@ const titleCase = (value) => {
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
-export default function MatchPage({ navigate }) {
+export default function MatchPage({ navigate, session }) {
   const [dogs, setDogs] = useState([]);
   const [profile, setProfile] = useState(DEFAULT_PROFILE);
   const [step, setStep] = useState(0);
@@ -30,6 +30,7 @@ export default function MatchPage({ navigate }) {
         setSelected={setSelected}
         onRestart={() => { setSubmitted(false); setStep(0); setSelected(0); }}
         navigate={navigate}
+        session={session}
       />
     );
   }
@@ -98,8 +99,10 @@ function MatchWizard({ profile, setProfile, step, setStep, onFinish, onCancel })
   );
 }
 
-function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigate }) {
+function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigate, session }) {
   const matches = useMemo(() => getMatches(dogs, profile), [dogs, profile]);
+  const [saveStatus, setSaveStatus] = useState("");
+  const [saveError, setSaveError] = useState("");
 
   if (!matches.length) {
     return (
@@ -126,6 +129,23 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
   const { dog } = match;
   const dogName = dog.name || "This dog";
   const cluster = CLUSTERS[dog.cluster] || CLUSTERS["Golden Hearts"];
+  const saveCurrentMatch = async () => {
+    if (!session?.access_token) {
+      navigate("signup", { next: "/match" });
+      return;
+    }
+    setSaveStatus("");
+    setSaveError("");
+    try {
+      await saveMatch(session.access_token, {
+        dogId: dog.id,
+        compatibilityScore: match.score,
+      });
+      setSaveStatus(`${dogName} has been saved to your CUB account.`);
+    } catch (error) {
+      setSaveError(error.message || "Could not save this match.");
+    }
+  };
 
   return (
     <main className="screen results-screen">
@@ -140,6 +160,18 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
           </div>
           <button type="button" className="link-action" onClick={onRestart}>Change my answers &rsaquo;</button>
         </div>
+
+        {!session && (
+          <section className="match-account-cta" aria-label="Save your matches">
+            <div>
+              <h2>Your matches are ready!</h2>
+              <p>Create a free account to save them, open CUB Care, and keep your favourites across devices.</p>
+            </div>
+            <button type="button" className="primary-action" onClick={() => navigate("signup", { next: "/match" })}>
+              Create account
+            </button>
+          </section>
+        )}
 
         <div className="match-avatars">
           {top.map((m, i) => (
@@ -165,8 +197,15 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
                 <p className="match-breed">{dog.breed} · {dog.size || "Size n/a"}{dog.color ? ` · ${dog.color}` : ""}</p>
                 <p className="match-traits">{clusterTraits(dog.cluster).join(" · ")}</p>
               </div>
-              <a className="primary-action meet-btn" href={dog.contactUrl} target="_blank" rel="noreferrer noopener">Meet {dogName}</a>
+              <div className="match-actions-row">
+                <a className="primary-action meet-btn" href={dog.contactUrl} target="_blank" rel="noreferrer noopener">Meet {dogName}</a>
+                <button className="secondary-outline-action save-match-action" type="button" onClick={saveCurrentMatch}>
+                  Save match
+                </button>
+              </div>
             </div>
+            {saveStatus && <p className="notice success">{saveStatus}</p>}
+            {saveError && <p className="notice error">{saveError}</p>}
             <div className="match-photo"><img src={dog.imageUrl || APP_LOGO} alt={dogName} /></div>
             <div className="cluster-pill">{dog.cluster}</div>
             <p className="cluster-headline">{cluster.headline}</p>
