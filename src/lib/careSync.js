@@ -10,13 +10,25 @@ function safeParse(raw, fallback = null) {
   }
 }
 
-export function readBrowserCareData() {
+function isAccountCareKey(key) {
+  return key === "dog_profile" || key.startsWith("personal:");
+}
+
+function filterAccountCareData(data) {
+  if (!data || typeof data !== "object") return {};
+  return Object.fromEntries(Object.entries(data).filter(([key]) => isAccountCareKey(key)));
+}
+
+export function readBrowserCareData(options = {}) {
+  const { accountOnly = false } = options;
   const data = {};
   try {
     for (let index = 0; index < localStorage.length; index += 1) {
       const key = localStorage.key(index);
       if (!key?.startsWith(STORE_PREFIX)) continue;
-      data[key.slice(STORE_PREFIX.length)] = safeParse(localStorage.getItem(key));
+      const careKey = key.slice(STORE_PREFIX.length);
+      if (accountOnly && !isAccountCareKey(careKey)) continue;
+      data[careKey] = safeParse(localStorage.getItem(key));
     }
   } catch {
     return {};
@@ -35,8 +47,8 @@ export function writeBrowserCareData(data) {
   }
 }
 
-export function serializeBrowserCareData() {
-  return JSON.stringify(readBrowserCareData());
+export function serializeBrowserCareData(options = {}) {
+  return JSON.stringify(readBrowserCareData(options));
 }
 
 function hasCareData(data) {
@@ -49,19 +61,21 @@ function hasCareData(data) {
   });
 }
 
-export async function syncBrowserCareData(accessToken) {
+export async function syncBrowserCareData(accessToken, options = {}) {
   if (!accessToken) return { status: "local" };
+  const { accountOnly = false, uploadLocal = true } = options;
 
-  const localData = readBrowserCareData();
+  const localData = readBrowserCareData({ accountOnly });
   const cloud = await loadCareData(accessToken);
-  const cloudData = cloud.careData || {};
+  const rawCloudData = cloud.careData || {};
+  const cloudData = accountOnly ? filterAccountCareData(rawCloudData) : rawCloudData;
 
   if (hasCareData(cloudData)) {
     writeBrowserCareData(cloudData);
     return { status: "loaded", updatedAt: cloud.updatedAt };
   }
 
-  if (hasCareData(localData)) {
+  if (uploadLocal && hasCareData(localData)) {
     const saved = await saveCareData(accessToken, localData);
     return { status: "uploaded", updatedAt: saved.updatedAt };
   }
@@ -69,15 +83,15 @@ export async function syncBrowserCareData(accessToken) {
   return { status: "empty", updatedAt: cloud.updatedAt };
 }
 
-export function startCareCloudAutosave(accessToken, onStatus) {
+export function startCareCloudAutosave(accessToken, onStatus, options = {}) {
   if (!accessToken) return () => {};
   let stopped = false;
-  let lastSnapshot = serializeBrowserCareData();
+  let lastSnapshot = serializeBrowserCareData(options);
   let saving = false;
 
   const flush = async () => {
     if (stopped || saving) return;
-    const nextSnapshot = serializeBrowserCareData();
+    const nextSnapshot = serializeBrowserCareData(options);
     if (nextSnapshot === lastSnapshot) return;
 
     saving = true;

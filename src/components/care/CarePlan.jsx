@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  SAMPLE_DOG, DAILY_TASKS, SAMPLE_REMINDERS, REMINDER_TYPES,
+  SAMPLE_DOG, SAMPLE_REMINDERS, REMINDER_TYPES,
+  dailyTasksForDog,
   loadChecklist, saveChecklist, loadReminders, saveReminders,
 } from "../../lib/care.js";
 
@@ -10,25 +11,33 @@ function formatDate(iso) {
   return date.toLocaleDateString("en-SG", { day: "numeric", month: "short" });
 }
 
-export default function CarePlan() {
-  const [checked, setChecked] = useState(loadChecklist);
-  const [userReminders, setUserReminders] = useState(loadReminders);
+export default function CarePlan({ dog = SAMPLE_DOG, isDemo = true }) {
+  const tasks = useMemo(() => dailyTasksForDog(dog, isDemo), [dog, isDemo]);
+  const careScope = isDemo ? "demo" : "personal";
+  const [checked, setChecked] = useState(() => loadChecklist(careScope));
+  const [userReminders, setUserReminders] = useState(() => loadReminders(careScope));
   const [showModal, setShowModal] = useState(false);
   const [draft, setDraft] = useState({ label: "", date: "", type: REMINDER_TYPES[0] });
   const [draftError, setDraftError] = useState("");
 
-  const doneCount = DAILY_TASKS.filter((task) => checked[task.id]).length;
-  const pct = Math.round((doneCount / DAILY_TASKS.length) * 100);
+  const doneCount = tasks.filter((task) => checked[task.id]).length;
+  const pct = Math.round((doneCount / tasks.length) * 100);
+
+  useEffect(() => {
+    setChecked(loadChecklist(careScope));
+    setUserReminders(loadReminders(careScope));
+  }, [careScope]);
 
   const toggle = (id) => {
     const next = { ...checked, [id]: !checked[id] };
     setChecked(next);
-    saveChecklist(next);
+    saveChecklist(next, careScope);
   };
 
   const reminders = useMemo(() => {
-    return [...SAMPLE_REMINDERS, ...userReminders].sort((a, b) => a.date.localeCompare(b.date));
-  }, [userReminders]);
+    const baseReminders = isDemo ? SAMPLE_REMINDERS : [];
+    return [...baseReminders, ...userReminders].sort((a, b) => a.date.localeCompare(b.date));
+  }, [isDemo, userReminders]);
 
   const addReminder = (event) => {
     event.preventDefault();
@@ -38,7 +47,7 @@ export default function CarePlan() {
     }
     const next = [...userReminders, { ...draft, label: draft.label.trim(), id: `u-${Date.now()}` }];
     setUserReminders(next);
-    saveReminders(next);
+    saveReminders(next, careScope);
     setDraft({ label: "", date: "", type: REMINDER_TYPES[0] });
     setDraftError("");
     setShowModal(false);
@@ -47,7 +56,7 @@ export default function CarePlan() {
   const removeReminder = (id) => {
     const next = userReminders.filter((entry) => entry.id !== id);
     setUserReminders(next);
-    saveReminders(next);
+    saveReminders(next, careScope);
   };
 
   return (
@@ -56,7 +65,7 @@ export default function CarePlan() {
         <div className="care-plan-head">
           <div>
             <p className="eyebrow">Today's care plan</p>
-            <h1>{doneCount === DAILY_TASKS.length ? `All done — good human! 🎉` : `${SAMPLE_DOG.name}'s day, step by step`}</h1>
+            <h1>{doneCount === tasks.length ? "All done - good human!" : `${dog.name || "Your dog"}'s day, step by step`}</h1>
           </div>
           <div className="care-plan-ring" role="img" aria-label={`${pct}% of today's plan completed`}>
             <svg viewBox="0 0 44 44" width="72" height="72">
@@ -71,7 +80,7 @@ export default function CarePlan() {
           </div>
         </div>
         <ul className="care-task-list">
-          {DAILY_TASKS.map((task) => (
+          {tasks.map((task) => (
             <li key={task.id}>
               <label className={checked[task.id] ? "care-task done" : "care-task"}>
                 <input
@@ -86,7 +95,7 @@ export default function CarePlan() {
             </li>
           ))}
         </ul>
-        <p className="helper-copy">Ticks are saved on this device and reset each morning.</p>
+        <p className="helper-copy">{isDemo ? "Demo ticks are saved on this device and reset each morning." : "Ticks sync to your CUB account and reset each morning."}</p>
       </section>
 
       <section className="panel care-reminders" aria-label="Upcoming reminders">

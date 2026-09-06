@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { initSupabase } from "./supabase.js";
-import { syncBrowserCareData } from "./careSync.js";
 
 const AuthContext = createContext(null);
 
@@ -49,19 +48,6 @@ export function AuthProvider({ children }) {
       subscription?.unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    if (!session?.access_token) return undefined;
-    let cancelled = false;
-    syncBrowserCareData(session.access_token).catch(() => {
-      if (!cancelled) {
-        // Care data remains available locally if the cloud sync is unavailable.
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [session?.access_token]);
 
   const value = useMemo(() => ({
     session,

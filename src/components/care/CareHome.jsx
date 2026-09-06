@@ -1,43 +1,59 @@
 import { useMemo, useState } from "react";
 import {
-  SAMPLE_DOG, OWNER_NAME, CARE_CATEGORIES, WEEKLY_INSIGHTS, DAILY_TASKS, loadChecklist,
+  SAMPLE_DOG,
+  OWNER_NAME,
+  WEEKLY_INSIGHTS,
+  ageLabel,
+  careCategoriesForDog,
+  dailyTasksForDog,
+  loadChecklist,
 } from "../../lib/care.js";
 
-export default function CareHome({ goTo }) {
-  const [category, setCategory] = useState(CARE_CATEGORIES[0].id);
-  const active = CARE_CATEGORIES.find((entry) => entry.id === category);
+export default function CareHome({
+  goTo,
+  dog = SAMPLE_DOG,
+  ownerName = OWNER_NAME,
+  isDemo = true,
+  onEdit,
+}) {
+  const categories = useMemo(() => careCategoriesForDog(dog, isDemo), [dog, isDemo]);
+  const tasks = useMemo(() => dailyTasksForDog(dog, isDemo), [dog, isDemo]);
+  const careScope = isDemo ? "demo" : "personal";
+  const [category, setCategory] = useState(categories[0].id);
+  const active = categories.find((entry) => entry.id === category) || categories[0];
 
   const doneCount = useMemo(() => {
-    const state = loadChecklist();
-    return DAILY_TASKS.filter((task) => state[task.id]).length;
-  }, []);
-  const planPct = Math.round((doneCount / DAILY_TASKS.length) * 100);
+    const state = loadChecklist(careScope);
+    return tasks.filter((task) => state[task.id]).length;
+  }, [careScope, tasks]);
+  const planPct = Math.round((doneCount / tasks.length) * 100);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const profileCompletion = dog.profileCompletion || (isDemo ? SAMPLE_DOG.profileCompletion : 70);
 
   return (
     <div className="care-home">
       <section className="care-hero panel" aria-label="Dog overview">
         <div className="care-hero-copy">
-          <p className="eyebrow">{greeting}, {OWNER_NAME}</p>
-          <h1>Here's what {SAMPLE_DOG.name} needs today.</h1>
+          <p className="eyebrow">{greeting}, {ownerName}</p>
+          <h1>Here's what {dog.name || "your dog"} needs today.</h1>
           <div className="care-dog-facts">
-            <span>{SAMPLE_DOG.breed}</span>
-            <span>{SAMPLE_DOG.ageYears} yrs</span>
-            <span>{SAMPLE_DOG.weightKg} kg</span>
-            <span>{SAMPLE_DOG.sex}</span>
+            <span>{dog.breed || "Breed not set"}</span>
+            <span>{ageLabel(dog)}</span>
+            <span>{dog.weightKg ? `${dog.weightKg} kg` : "Weight not set"}</span>
+            <span>{dog.sex || "Sex not set"}</span>
           </div>
           <div className="care-hero-meters">
             <div className="care-meter">
               <span className="care-meter-label">Today's plan</span>
               <div className="mini-meter"><span style={{ width: `${planPct}%` }} /></div>
-              <b>{doneCount}/{DAILY_TASKS.length} done</b>
+              <b>{doneCount}/{tasks.length} done</b>
             </div>
             <div className="care-meter">
               <span className="care-meter-label">Profile</span>
-              <div className="mini-meter"><span style={{ width: `${SAMPLE_DOG.profileCompletion}%` }} /></div>
-              <b>{SAMPLE_DOG.profileCompletion}% complete</b>
+              <div className="mini-meter"><span style={{ width: `${profileCompletion}%` }} /></div>
+              <b>{profileCompletion}% complete</b>
             </div>
           </div>
           <div className="care-hero-actions">
@@ -50,20 +66,20 @@ export default function CareHome({ goTo }) {
           </div>
         </div>
         <figure className="care-hero-photo">
-          <img src={SAMPLE_DOG.photo} alt={`${SAMPLE_DOG.name}, a ${SAMPLE_DOG.breed}`} />
+          <img src={dog.photo || SAMPLE_DOG.photo} alt={`${dog.name || "Dog"}, a ${dog.breed || "dog"}`} />
           <figcaption>
-            <b>{SAMPLE_DOG.name}</b>
-            <span>{SAMPLE_DOG.location}</span>
+            <b>{dog.name || "Your dog"}</b>
+            <span>{dog.location || "Location not set"}</span>
           </figcaption>
-          <button className="care-switch-dog" type="button" title="Prototype only">
-            + Switch or add dog
+          <button className="care-switch-dog" type="button" onClick={onEdit}>
+            {isDemo ? "+ Create my own" : "Edit dog profile"}
           </button>
         </figure>
       </section>
 
       <section aria-label="Daily care categories" className="care-categories">
         <div className="care-tabs" role="tablist" aria-label="Care categories">
-          {CARE_CATEGORIES.map((entry) => (
+          {categories.map((entry) => (
             <button
               key={entry.id}
               role="tab"
@@ -96,7 +112,7 @@ export default function CareHome({ goTo }) {
       <section className="panel care-week" aria-label="Weekly insights">
         <div className="panel-head compact">
           <p className="eyebrow">Weekly insights · {WEEKLY_INSIGHTS.weekLabel}</p>
-          <h2>{SAMPLE_DOG.name}'s week at a glance</h2>
+          <h2>{dog.name || "Your dog"}'s week at a glance</h2>
         </div>
         <div className="care-week-grid">
           <WeekStat label="Care plan" value={`${WEEKLY_INSIGHTS.carePlanCompletion}%`} pct={WEEKLY_INSIGHTS.carePlanCompletion} note="completed" />

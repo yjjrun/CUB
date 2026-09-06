@@ -10,7 +10,7 @@ import {
 // Scan phases: idle -> requesting -> live -> captured -> analyzing -> result
 // plus terminal error phases: denied, unavailable.
 
-export default function EmotionScan() {
+export default function EmotionScan({ dog = SAMPLE_DOG, isDemo = true }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -18,7 +18,8 @@ export default function EmotionScan() {
   const [capturedUrl, setCapturedUrl] = useState("");
   const [capturedBlob, setCapturedBlob] = useState(null);
   const [result, setResult] = useState(null);
-  const [history, setHistory] = useState(loadScanHistory);
+  const careScope = isDemo ? "demo" : "personal";
+  const [history, setHistory] = useState(() => loadScanHistory(careScope));
   const [savedNote, setSavedNote] = useState(false);
 
   const stopCamera = () => {
@@ -32,6 +33,9 @@ export default function EmotionScan() {
   // Always release the camera when leaving the scanner.
   useEffect(() => stopCamera, []);
   useEffect(() => () => { if (capturedUrl) URL.revokeObjectURL(capturedUrl); }, [capturedUrl]);
+  useEffect(() => {
+    setHistory(loadScanHistory(careScope));
+  }, [careScope]);
 
   const startCamera = async () => {
     setResult(null);
@@ -123,7 +127,7 @@ export default function EmotionScan() {
     };
     const next = [entry, ...history];
     setHistory(next);
-    saveScanHistory(next);
+    saveScanHistory(next, careScope);
     setSavedNote(true);
   };
 
@@ -132,9 +136,9 @@ export default function EmotionScan() {
       <section className="panel care-scan-panel" aria-label="Emotion scan">
         <div className="panel-head compact">
           <p className="eyebrow">Emotion Scan</p>
-          <h1>How is {SAMPLE_DOG.name} feeling?</h1>
+          <h1>How is {dog.name || "your dog"} feeling?</h1>
           <p className="helper-copy">
-            Point your camera at {SAMPLE_DOG.name} or upload a photo. CUB checks on-device that a
+            Point your camera at {dog.name || "your dog"} or upload a photo. CUB checks on-device that a
             dog is actually in frame and how much of the body is visible (the first scan downloads
             a small model; photos never leave your device). The emotional read itself is still a
             prototype and does not diagnose emotions or health.
@@ -144,8 +148,8 @@ export default function EmotionScan() {
         <div className="care-scan-stage" data-phase={phase}>
           {phase === "idle" && (
             <div className="care-scan-empty">
-              <img src={SAMPLE_DOG.photo} alt="" aria-hidden="true" />
-              <p>Start the camera or upload a photo of {SAMPLE_DOG.name}.</p>
+              <img src={dog.photo || SAMPLE_DOG.photo} alt="" aria-hidden="true" />
+              <p>Start the camera or upload a photo of {dog.name || "your dog"}.</p>
             </div>
           )}
 
@@ -182,7 +186,7 @@ export default function EmotionScan() {
 
           {(phase === "captured" || phase === "analyzing" || phase === "result" || phase === "no-read") && capturedUrl && (
             <div className="care-scan-frame">
-              <img src={capturedUrl} alt={`Captured photo of ${SAMPLE_DOG.name}`} />
+              <img src={capturedUrl} alt={`Captured photo of ${dog.name || "your dog"}`} />
               {phase === "analyzing" && (
                 <div className="care-scan-overlay" role="status" aria-label="Analysis in progress">
                   <div className="care-scan-beam" aria-hidden="true" />

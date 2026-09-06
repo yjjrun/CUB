@@ -674,31 +674,149 @@ function writeStore(key, value) {
   }
 }
 
+function scopedCareKey(key, scope = "demo") {
+  return scope === "personal" ? `personal:${key}` : key;
+}
+
 export function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
+export function loadPersonalCareProfile() {
+  return readStore("dog_profile", null);
+}
+
+export function savePersonalCareProfile(profile) {
+  writeStore("dog_profile", profile);
+}
+
+export function clearPersonalCareProfile() {
+  try {
+    localStorage.removeItem(STORE_PREFIX + "dog_profile");
+  } catch {
+    // Storage unavailable; the caller's in-memory state still updates.
+  }
+}
+
+export function ageLabel(dog = SAMPLE_DOG) {
+  if (dog.ageMonths) {
+    if (dog.ageMonths < 12) return `${dog.ageMonths} mo`;
+    const years = Math.floor(dog.ageMonths / 12);
+    const months = dog.ageMonths % 12;
+    return months ? `${years} yr ${months} mo` : `${years} yrs`;
+  }
+  return dog.ageYears ? `${dog.ageYears} yrs` : "Age not set";
+}
+
+export function careCategoriesForDog(dog = SAMPLE_DOG, isDemo = true) {
+  if (isDemo) return CARE_CATEGORIES;
+  const weight = Number(dog.weightKg) || 18;
+  const energy = Number(dog.traits?.energy) || 55;
+  const sociability = Number(dog.traits?.sociability) || 55;
+  const trainability = Number(dog.traits?.trainability) || 55;
+  const dailyFood = Math.max(80, Math.round(weight * (energy >= 75 ? 13 : energy >= 50 ? 11 : 9)));
+  const walkMinutes = energy >= 75 ? 75 : energy >= 50 ? 50 : 30;
+  const trainingPlan = trainability >= 70 ? "short trick or recall practice" : "simple confidence-building cues";
+  const socialPlan = sociability >= 70 ? "calm greeting practice" : "quiet decompression time";
+
+  return [
+    {
+      id: "nutrition",
+      label: "Nutrition",
+      icon: "🍚",
+      headline: `2 meals · about ${dailyFood}g today`,
+      detail:
+        `For ${dog.name || "your dog"}, start with an age-appropriate complete food and split meals across the day. Adjust portions with your veterinarian or shelter as weight and activity change.`,
+      stats: [
+        { label: "Breakfast", value: `${Math.round(dailyFood / 2)}g` },
+        { label: "Dinner", value: `${Math.round(dailyFood / 2)}g` },
+        { label: "Water", value: "Fresh water all day" },
+      ],
+      tip: "Treats should stay a small part of the day so training rewards do not quietly become a second dinner.",
+    },
+    {
+      id: "activity",
+      label: "Physical activity",
+      icon: "🐾",
+      headline: `${walkMinutes} minutes of movement`,
+      detail:
+        `${dog.name || "Your dog"}'s current energy setting suggests a ${energy >= 75 ? "higher" : energy >= 50 ? "steady" : "gentler"} activity routine. Watch heat, breathing, stiffness, and recovery after walks.`,
+      stats: [
+        { label: "Morning", value: `${Math.round(walkMinutes * 0.45)} min walk` },
+        { label: "Evening", value: `${Math.round(walkMinutes * 0.45)} min walk` },
+        { label: "Play", value: `${Math.max(5, Math.round(walkMinutes * 0.1))} min` },
+      ],
+      tip: "Sniffing and slow exploring count too, especially for dogs who are settling into a new home.",
+    },
+    {
+      id: "enrichment",
+      label: "Mental enrichment",
+      icon: "🧩",
+      headline: "1 training + 1 calm game",
+      detail:
+        `Use ${trainingPlan}, food puzzles, and ${socialPlan}. Keep sessions short enough that ${dog.name || "your dog"} finishes wanting more.`,
+      stats: [
+        { label: "Training", value: "5-10 min" },
+        { label: "Game", value: "Snuffle mat or toy search" },
+        { label: "Social", value: socialPlan },
+      ],
+      tip: "Mental work is part of welfare, not an optional bonus. It often prevents problem behaviour better than extra running.",
+    },
+    {
+      id: "health",
+      label: "General health",
+      icon: "🩺",
+      headline: "Coat, ears, paws, appetite",
+      detail:
+        "Do a quick daily check for limping, appetite changes, scratching, ear smell, ticks, or paw irritation. Keep vaccination and parasite-prevention reminders current.",
+      stats: [
+        { label: "Body check", value: "1 quick scan daily" },
+        { label: "Grooming", value: "Brush as needed" },
+        { label: "Vet notes", value: "Track changes early" },
+      ],
+      tip: "Patterns matter more than one-off moments. Save observations when something repeats.",
+    },
+  ];
+}
+
+export function dailyTasksForDog(dog = SAMPLE_DOG, isDemo = true) {
+  if (isDemo) return DAILY_TASKS;
+  const weight = Number(dog.weightKg) || 18;
+  const energy = Number(dog.traits?.energy) || 55;
+  const dailyFood = Math.max(80, Math.round(weight * (energy >= 75 ? 13 : energy >= 50 ? 11 : 9)));
+  const walkMinutes = energy >= 75 ? 30 : energy >= 50 ? 22 : 15;
+  return [
+    { id: "meal-am", label: `Morning meal (${Math.round(dailyFood / 2)}g)`, time: "7:30am", icon: "🍚" },
+    { id: "walk-am", label: `Morning walk (${walkMinutes} min)`, time: "8:00am", icon: "🌅" },
+    { id: "training", label: "Training: easy cue practice", time: "12:00pm", icon: "🎓" },
+    { id: "enrichment", label: "Enrichment: sniffing or puzzle game", time: "3:00pm", icon: "🧩" },
+    { id: "meal-pm", label: `Evening meal (${Math.round(dailyFood / 2)}g)`, time: "6:30pm", icon: "🍛" },
+    { id: "walk-pm", label: `Evening walk (${walkMinutes} min)`, time: "7:00pm", icon: "🌆" },
+    { id: "grooming", label: "Quick coat, paw, and tick check", time: "8:00pm", icon: "🪮" },
+  ];
+}
+
 // Checklist completion is keyed by date so it naturally resets each morning.
-export function loadChecklist() {
-  return readStore(`checklist:${todayKey()}`, {});
+export function loadChecklist(scope = "demo") {
+  return readStore(scopedCareKey(`checklist:${todayKey()}`, scope), {});
 }
 
-export function saveChecklist(state) {
-  writeStore(`checklist:${todayKey()}`, state);
+export function saveChecklist(state, scope = "demo") {
+  writeStore(scopedCareKey(`checklist:${todayKey()}`, scope), state);
 }
 
-export function loadReminders() {
-  return readStore("reminders", []);
+export function loadReminders(scope = "demo") {
+  return readStore(scopedCareKey("reminders", scope), []);
 }
 
-export function saveReminders(reminders) {
-  writeStore("reminders", reminders);
+export function saveReminders(reminders, scope = "demo") {
+  writeStore(scopedCareKey("reminders", scope), reminders);
 }
 
-export function loadScanHistory() {
-  return readStore("scans", []);
+export function loadScanHistory(scope = "demo") {
+  return readStore(scopedCareKey("scans", scope), []);
 }
 
-export function saveScanHistory(history) {
-  writeStore("scans", history.slice(0, 20));
+export function saveScanHistory(history, scope = "demo") {
+  writeStore(scopedCareKey("scans", scope), history.slice(0, 20));
 }

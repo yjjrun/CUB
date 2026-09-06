@@ -151,13 +151,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!auth.loading && route === "care" && !auth.session) {
-      window.history.replaceState({}, "", "/login?next=/care");
-      setRoute("login");
-    }
-  }, [auth.loading, auth.session, route]);
-
-  useEffect(() => {
     const seo = SEO[route] || SEO.home;
     const url = `${SITE_URL}${seo.path}`;
     document.title = seo.title;
@@ -215,11 +208,7 @@ export default function App() {
       {route === "signup" && <SignupPage navigate={navigate} />}
       {route === "forgotPassword" && <ForgotPasswordPage navigate={navigate} />}
       {route === "profile" && <ProfilePage navigate={navigate} />}
-      {route === "care" && (
-        auth.session
-          ? <CarePage session={auth.session} />
-          : <LoginPage navigate={navigate} />
-      )}
+      {route === "care" && <CarePage session={auth.session} navigate={navigate} user={auth.user} authLoading={auth.loading} />}
       {route !== "care" && <Partners />}
     </>
   );
