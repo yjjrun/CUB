@@ -30,20 +30,20 @@ export default function ProfilePage({ navigate }) {
     navigate("home");
   };
 
+  if (loading) {
+    return (
+      <AuthShell title="Checking your account" eyebrow="CUB account">
+        <p className="helper-copy">One moment...</p>
+      </AuthShell>
+    );
+  }
+
   if (!isConfigured) {
     return (
       <AuthShell title="CUB account" eyebrow="Account setup">
         <p className="notice error">
           Supabase is not configured yet. Add the Supabase URL and publishable key to CUB's environment.
         </p>
-      </AuthShell>
-    );
-  }
-
-  if (loading) {
-    return (
-      <AuthShell title="Checking your account" eyebrow="CUB account">
-        <p className="helper-copy">One moment...</p>
       </AuthShell>
     );
   }

@@ -65,6 +65,14 @@ export default function LoginPage({ navigate }) {
     navigate("profile");
   };
 
+  if (loading) {
+    return (
+      <AuthShell title="Checking your account" eyebrow="CUB account">
+        <p className="helper-copy">One moment...</p>
+      </AuthShell>
+    );
+  }
+
   if (!isConfigured) {
     return (
       <AuthShell title="Log in to CUB" eyebrow="Account setup">

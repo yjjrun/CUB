@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase.js";
 import { AuthShell } from "./LoginPage.jsx";
 
 export default function ForgotPasswordPage({ navigate }) {
-  const { isConfigured } = useAuth();
+  const { isConfigured, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -26,6 +26,14 @@ export default function ForgotPasswordPage({ navigate }) {
     }
     setMessage("Password reset email sent.");
   };
+
+  if (loading) {
+    return (
+      <AuthShell title="Checking account setup" eyebrow="CUB account">
+        <p className="helper-copy">One moment...</p>
+      </AuthShell>
+    );
+  }
 
   if (!isConfigured) {
     return (

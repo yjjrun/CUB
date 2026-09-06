@@ -1,37 +1,52 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { isSupabaseConfigured, supabase } from "./supabase.js";
+import { initSupabase } from "./supabase.js";
 import { syncBrowserCareData } from "./careSync.js";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
-  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [loading, setLoading] = useState(true);
+  const [configured, setConfigured] = useState(false);
   const [recoveryMode, setRecoveryMode] = useState(false);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setLoading(false);
-      return undefined;
-    }
-
     let active = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setSession(data.session || null);
-      setLoading(false);
-    });
+    let subscription = null;
 
-    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
-      if (event === "SIGNED_OUT") setRecoveryMode(false);
-      setSession(nextSession || null);
-      setLoading(false);
-    });
+    initSupabase()
+      .then((client) => {
+        if (!active) return;
+        if (!client) {
+          setConfigured(false);
+          setLoading(false);
+          return;
+        }
+
+        setConfigured(true);
+        client.auth.getSession().then(({ data }) => {
+          if (!active) return;
+          setSession(data.session || null);
+          setLoading(false);
+        });
+
+        const authListener = client.auth.onAuthStateChange((event, nextSession) => {
+          if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
+          if (event === "SIGNED_OUT") setRecoveryMode(false);
+          setSession(nextSession || null);
+          setLoading(false);
+        });
+        subscription = authListener.data.subscription;
+      })
+      .catch(() => {
+        if (!active) return;
+        setConfigured(false);
+        setLoading(false);
+      });
 
     return () => {
       active = false;
-      data.subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 
@@ -53,10 +68,10 @@ export function AuthProvider({ children }) {
     user: session?.user || null,
     accessToken: session?.access_token || "",
     loading,
-    isConfigured: isSupabaseConfigured,
+    isConfigured: configured,
     recoveryMode,
     clearRecoveryMode: () => setRecoveryMode(false),
-  }), [loading, recoveryMode, session]);
+  }), [configured, loading, recoveryMode, session]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

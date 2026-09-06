@@ -17,7 +17,7 @@ function routeFromNext(next) {
 }
 
 export default function SignupPage({ navigate }) {
-  const { isConfigured } = useAuth();
+  const { isConfigured, loading } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -62,6 +62,14 @@ export default function SignupPage({ navigate }) {
     setBusy(false);
     setMessage("Check your email to confirm your CUB account, then log in.");
   };
+
+  if (loading) {
+    return (
+      <AuthShell title="Checking account setup" eyebrow="CUB account">
+        <p className="helper-copy">One moment...</p>
+      </AuthShell>
+    );
+  }
 
   if (!isConfigured) {
     return (

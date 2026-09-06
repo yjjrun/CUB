@@ -917,6 +917,14 @@ class CUBHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/api/config":
+            configured = bool(SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY)
+            self.send_json({
+                "supabaseConfigured": configured,
+                "supabaseUrl": SUPABASE_URL if configured else "",
+                "supabasePublishableKey": SUPABASE_PUBLISHABLE_KEY if configured else "",
+            })
+            return
         if parsed.path == "/api/dogs":
             self.send_json({"dogs": [public_dog_view(dog) for dog in list_dogs()]})
             return
