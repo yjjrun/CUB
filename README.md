@@ -73,6 +73,19 @@ The dog database starts empty; partners add dogs through `/shelter`, which store
 them in `data/cub.sqlite`. Consumer matching only reads saved records. Two sample
 dogs (Mochi, Rocket) are bundled for demos.
 
+Curated partner imports live in `scripts/`. `import_partner_puppies.py` contains
+the currently available Golden Paws, Daily Dogs, and Woof Loof puppies checked on
+30 September 2026. It skips existing shelter/name pairs and marks every inferred
+C-BARQ answer as a breed/source-level estimate in the dog notes:
+
+```bash
+python3 scripts/import_partner_puppies.py --dry-run
+```
+
+Writing to the API requires a separate partner code in `CUB_GOLDEN_PAWS_CODE`,
+`CUB_DAILY_DOGS_CODE`, and `CUB_WOOF_LOOF_CODE`. MercyLight's separate importer
+remains `scripts/import_mercylight.py`.
+
 ## Deployment
 
 CUB runs on a single AWS EC2 instance (Amazon Linux 2023) behind nginx with Let's
