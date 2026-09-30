@@ -56,7 +56,7 @@ DOGS = [
         "dob": "2026-07-15", "sex": "Male", "size": "Large", "color": "Golden",
         "hdbApproved": False, "personality": "golden_retriever",
         "contactUrl": "https://goldenpaws.sg/products/bennett-2-month-old",
-        "imageUrl": "/assets/dogs/golden-paws-bennett.jpg",
+        "imageUrl": "https://meetmycub.com/assets/dogs/golden-paws-bennett.jpg",
         "hdbBasis": "Golden Retriever is not on HDB's approved small-breed list.",
     },
     {
@@ -64,7 +64,7 @@ DOGS = [
         "dob": "2026-01-01", "sex": "Female", "size": "Large", "color": "Cream",
         "hdbApproved": False, "personality": "golden_retriever",
         "contactUrl": "https://goldenpaws.sg/products/layla-4-month-old",
-        "imageUrl": "/assets/dogs/golden-paws-layla.jpg",
+        "imageUrl": "https://meetmycub.com/assets/dogs/golden-paws-layla.jpg",
         "hdbBasis": "Golden Retriever is not on HDB's approved small-breed list.",
     },
     {
@@ -72,7 +72,7 @@ DOGS = [
         "dob": "2026-02-03", "sex": "Female", "size": "Large", "color": "Cream",
         "hdbApproved": False, "personality": "golden_retriever",
         "contactUrl": "https://goldenpaws.sg/products/kayla-3-month-old",
-        "imageUrl": "/assets/dogs/golden-paws-kayla.jpg",
+        "imageUrl": "https://meetmycub.com/assets/dogs/golden-paws-kayla.jpg",
         "hdbBasis": "Golden Retriever is not on HDB's approved small-breed list.",
     },
     {
@@ -80,7 +80,7 @@ DOGS = [
         "dob": "2026-07-06", "sex": "Female", "size": "Small", "color": "Cream",
         "hdbApproved": True, "personality": "maltipoo",
         "contactUrl": "https://goldenpaws.sg/products/mila-maltipoo-2-month-old",
-        "imageUrl": "/assets/dogs/golden-paws-mila.jpg",
+        "imageUrl": "https://meetmycub.com/assets/dogs/golden-paws-mila.jpg",
         "hdbBasis": "Golden Paws lists its Maltipoos as HDB approved; Maltese and Toy/Miniature Poodle are both approved breeds.",
     },
     {
@@ -88,7 +88,7 @@ DOGS = [
         "dob": "2026-07-06", "sex": "Male", "size": "Small", "color": "Cream",
         "hdbApproved": True, "personality": "maltipoo",
         "contactUrl": "https://goldenpaws.sg/products/milo-2-month-old",
-        "imageUrl": "/assets/dogs/golden-paws-milo.jpg",
+        "imageUrl": "https://meetmycub.com/assets/dogs/golden-paws-milo.jpg",
         "hdbBasis": "Golden Paws lists its Maltipoos as HDB approved; Maltese and Toy/Miniature Poodle are both approved breeds.",
     },
     {
@@ -96,7 +96,7 @@ DOGS = [
         "dob": "2026-07-07", "sex": "Male", "size": "Medium", "color": "Cream and brown",
         "hdbApproved": True, "personality": "mini_goldendoodle",
         "contactUrl": "https://dailydogs.sg/products/waffle-cream-brown-f1bb-golden-doodle-boy",
-        "imageUrl": "/assets/dogs/daily-dogs-waffle.jpg",
+        "imageUrl": "https://meetmycub.com/assets/dogs/daily-dogs-waffle.jpg",
         "hdbBasis": "Daily Dogs explicitly marks this individual puppy HDB-approved; that partner assessment is used as the override.",
         "sizeBasis": "Daily Dogs does not publish an expected adult weight; CUB records Medium conservatively for this Mini Golden Doodle.",
     },
@@ -105,7 +105,7 @@ DOGS = [
         "dob": "2026-07-07", "sex": "Male", "size": "Medium", "color": "Cream and brown",
         "hdbApproved": True, "personality": "mini_goldendoodle",
         "contactUrl": "https://dailydogs.sg/products/churro-cream-brown-f1bb-mini-golden-doodle-boy",
-        "imageUrl": "/assets/dogs/daily-dogs-churro.jpg",
+        "imageUrl": "https://meetmycub.com/assets/dogs/daily-dogs-churro.jpg",
         "hdbBasis": "Daily Dogs explicitly marks this individual puppy HDB-approved; that partner assessment is used as the override.",
         "sizeBasis": "Daily Dogs does not publish an expected adult weight; CUB records Medium conservatively for this Mini Golden Doodle.",
     },
@@ -114,7 +114,7 @@ DOGS = [
         "dob": "2026-07-07", "sex": "Female", "size": "Medium", "color": "Cream and brown",
         "hdbApproved": True, "personality": "mini_goldendoodle",
         "contactUrl": "https://dailydogs.sg/products/muffin-cream-brown-f1bb-mini-golden-doodle-girl",
-        "imageUrl": "/assets/dogs/daily-dogs-muffin.jpg",
+        "imageUrl": "https://meetmycub.com/assets/dogs/daily-dogs-muffin.jpg",
         "hdbBasis": "Daily Dogs explicitly marks this individual puppy HDB-approved; that partner assessment is used as the override.",
         "sizeBasis": "Daily Dogs does not publish an expected adult weight; CUB records Medium conservatively for this Mini Golden Doodle.",
     },
@@ -123,7 +123,7 @@ DOGS = [
         "dob": "2026-06-01", "sex": "Male", "size": "Small", "color": "Ruby red and white",
         "hdbApproved": True, "personality": "cavapoo",
         "contactUrl": "https://woofloof.sg/cavapoos/",
-        "imageUrl": "/assets/dogs/woof-loof-toffee.jpg",
+        "imageUrl": "https://meetmycub.com/assets/dogs/woof-loof-toffee.jpg",
         "hdbBasis": "Woof Loof explicitly marks this puppy HDB-approved; Cavalier King Charles Spaniel and Toy/Miniature Poodle are both approved breeds.",
     },
     {
@@ -131,7 +131,7 @@ DOGS = [
         "dob": "2026-06-01", "sex": "Male", "size": "Small", "color": "Ruby red and white",
         "hdbApproved": True, "personality": "cavapoo",
         "contactUrl": "https://woofloof.sg/cavapoos/",
-        "imageUrl": "/assets/dogs/woof-loof-mocha.jpg",
+        "imageUrl": "https://meetmycub.com/assets/dogs/woof-loof-mocha.jpg",
         "hdbBasis": "Woof Loof explicitly marks this puppy HDB-approved; Cavalier King Charles Spaniel and Toy/Miniature Poodle are both approved breeds.",
     },
     {
@@ -139,7 +139,7 @@ DOGS = [
         "dob": "2026-06-20", "sex": "Male", "size": "Small", "color": "Ruby red",
         "hdbApproved": True, "personality": "cavapoo",
         "contactUrl": "https://woofloof.sg/cavapoos/",
-        "imageUrl": "/assets/dogs/woof-loof-raphy.jpg",
+        "imageUrl": "https://meetmycub.com/assets/dogs/woof-loof-raphy.jpg",
         "hdbBasis": "Woof Loof explicitly marks this puppy HDB-approved; Cavalier King Charles Spaniel and Toy/Miniature Poodle are both approved breeds.",
     },
     {
@@ -147,7 +147,7 @@ DOGS = [
         "dob": "2026-06-20", "sex": "Male", "size": "Small", "color": "Ruby red",
         "hdbApproved": True, "personality": "cavapoo",
         "contactUrl": "https://woofloof.sg/cavapoos/",
-        "imageUrl": "/assets/dogs/woof-loof-milo.jpg",
+        "imageUrl": "https://meetmycub.com/assets/dogs/woof-loof-milo.jpg",
         "hdbBasis": "Woof Loof explicitly marks this puppy HDB-approved; Cavalier King Charles Spaniel and Toy/Miniature Poodle are both approved breeds.",
     },
     {
@@ -155,7 +155,7 @@ DOGS = [
         "dob": "2026-06-20", "sex": "Female", "size": "Small", "color": "Ruby red",
         "hdbApproved": True, "personality": "cavapoo",
         "contactUrl": "https://woofloof.sg/cavapoos/",
-        "imageUrl": "/assets/dogs/woof-loof-biscuit.jpg",
+        "imageUrl": "https://meetmycub.com/assets/dogs/woof-loof-biscuit.jpg",
         "hdbBasis": "Woof Loof explicitly marks this puppy HDB-approved; Cavalier King Charles Spaniel and Toy/Miniature Poodle are both approved breeds.",
     },
 ]
