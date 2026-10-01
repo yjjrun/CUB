@@ -86,6 +86,21 @@ Writing to the API requires a separate partner code in `CUB_GOLDEN_PAWS_CODE`,
 `CUB_DAILY_DOGS_CODE`, and `CUB_WOOF_LOOF_CODE`. MercyLight's separate importer
 remains `scripts/import_mercylight.py`.
 
+### Refreshing MercyLight
+
+MercyLight's importer discovers the current live catalogue instead of relying
+on a fixed list of dog names. On the production server, review and apply a
+catalogue reconciliation with:
+
+```bash
+sudo -u cub bash -c 'set -a; . /var/lib/cub/cub.env; CUB_DATA_DIR=/var/lib/cub python3 /opt/cub/scripts/sync_mercylight.py'
+sudo -u cub bash -c 'set -a; . /var/lib/cub/cub.env; CUB_DATA_DIR=/var/lib/cub python3 /opt/cub/scripts/sync_mercylight.py --apply --remove-missing'
+```
+
+The first command is a dry run. The second updates current dogs and removes
+records that are no longer present on MercyLight's public adoption page. The
+sync refuses to proceed when catalogue discovery returns suspiciously few dogs.
+
 ## Deployment
 
 CUB runs on a single AWS EC2 instance (Amazon Linux 2023) behind nginx with Let's

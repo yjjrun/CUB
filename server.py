@@ -834,7 +834,15 @@ def list_dogs(partner_id: str | None = None) -> list[dict]:
     return [row_to_dog(row) for row in rows]
 
 
-def insert_dog(payload: dict, partner: dict) -> dict:
+def dog_fields_from_payload(
+    payload: dict,
+    partner: dict,
+    *,
+    dog_id: str,
+    created_at: str,
+    status: str = "available",
+) -> dict:
+    """Validate an intake payload and map it to the dogs table schema."""
     factors = normalise_factors(payload.get("cbarqFactors") or {})
     cluster = classify_cluster(factors)
     breed = str(payload.get("breed") or "").strip()
@@ -850,9 +858,6 @@ def insert_dog(payload: dict, partner: dict) -> dict:
     hdb_override = payload.get("hdbApproved")
     hdb_override = bool(hdb_override) if isinstance(hdb_override, bool) else None
     care_profile = derive_dog_care_profile(breed, size, hdb_override)
-    dog_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc).isoformat()
-
     contact_url = str(payload.get("contactUrl") or "").strip()
     image_url = str(payload.get("imageUrl") or "").strip()
     validate_contact_url(contact_url)
@@ -860,8 +865,8 @@ def insert_dog(payload: dict, partner: dict) -> dict:
 
     fields = {
         "id": dog_id,
-        "created_at": now,
-        "status": "available",
+        "created_at": created_at,
+        "status": status,
         "name": str(payload.get("name") or "").strip(),
         # shelter is always the logged-in partner's own name, never client input,
         # so a valid code can only ever create records under its own identity.
@@ -889,6 +894,16 @@ def insert_dog(payload: dict, partner: dict) -> dict:
     missing = [field for field in required if not fields[field]]
     if missing:
         raise ValueError("Missing required fields: " + ", ".join(missing))
+    return fields
+
+
+def insert_dog(payload: dict, partner: dict) -> dict:
+    fields = dog_fields_from_payload(
+        payload,
+        partner,
+        dog_id=str(uuid.uuid4()),
+        created_at=datetime.now(timezone.utc).isoformat(),
+    )
 
     with sqlite3.connect(DB_PATH) as con:
         con.execute(
@@ -909,7 +924,12 @@ def insert_dog(payload: dict, partner: dict) -> dict:
             fields,
         )
         con.commit()
-    return {"id": dog_id, "cluster": cluster, "dog": next(dog for dog in list_dogs() if dog["id"] == dog_id)}
+    dog_id = fields["id"]
+    return {
+        "id": dog_id,
+        "cluster": fields["cluster"],
+        "dog": next(dog for dog in list_dogs() if dog["id"] == dog_id),
+    }
 
 
 class CUBHandler(BaseHTTPRequestHandler):

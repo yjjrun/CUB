@@ -63,24 +63,6 @@ HOSTED_IMAGE = "https://meetmycub.com/assets/dogs/{slug}.jpg"
 # Singapore Specials are a medium-to-large landrace; the shelter confirms large.
 DEFAULT_SIZE = "Large"
 
-# Slugs as published on the listing page (50 dogs, "Show more" paginated).
-SLUGS = [
-    "ace-blessing", "amber-blessing", "amigo-blessing", "ardon-blessing",
-    "asherboy-blessing", "ava-blessing", "bethel-blessing", "boaz-blessing",
-    "bree-blessing", "brownie-blessing", "chase-blessing", "colby-blessing",
-    "cosmos-blessing", "dante-blessing", "diamond-blessing", "dino-blessing",
-    "emilia-blessing", "esprit-blessing", "grateful-blessing", "hailey-blessing",
-    "haven-blessing", "honest-blessing", "izzie-blessing", "jay-jay-blessing",
-    "joy-blessing", "kibo-sir-blessing", "koda-blessing", "kodi-blessing",
-    "lashon-blessing", "leo-blessing", "luna-blessing", "macy-blessing",
-    "malia-blessing", "mateo-blessing", "mikel-blessing", "naomi-blessing",
-    "nori-blessing", "nova-blessing", "nugget-blessing", "olive-blessing",
-    "pardon-blessing", "poppy-blessing", "rainbow-blessing", "saint-blessing",
-    "skylar-blessing", "stitch-jr-blessing", "summer-blessing", "tasha-blessing",
-    "tess-blessing", "waffle-blessing",
-]
-
-
 # ---------------------------------------------------------------------------
 # Scraping
 # ---------------------------------------------------------------------------
@@ -143,6 +125,23 @@ def fetch(url: str) -> str:
     request = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(request, timeout=30) as response:
         return response.read().decode("utf-8", "replace")
+
+
+def discover_slugs(html: str | None = None) -> list[str]:
+    """Read every current profile slug from MercyLight's paginated catalogue."""
+    source = html if html is not None else fetch(LISTING)
+    # The page's React payload contains all profiles, including entries hidden
+    # behind "Show more". The normal hrefs only cover the first visible page.
+    matches = re.findall(r'\\"slug\\":\\"([a-z0-9-]+)\\"', source, re.I)
+    if not matches:
+        matches = re.findall(r'href=["\']/adopt-a-blessing/([a-z0-9-]+)', source, re.I)
+    slugs = list(dict.fromkeys(matches))
+    if len(slugs) < 20:
+        raise RuntimeError(
+            f"MercyLight catalogue discovery returned only {len(slugs)} dogs; "
+            "refusing to treat a possibly incomplete page as authoritative."
+        )
+    return slugs
 
 
 def scrape_profile(slug: str) -> dict:
@@ -319,7 +318,8 @@ def main() -> int:
                         help="Breed to record when the listing states none (default: %(default)s)")
     args = parser.parse_args()
 
-    slugs = SLUGS[: args.limit] if args.limit else SLUGS
+    discovered = discover_slugs()
+    slugs = discovered[: args.limit] if args.limit else discovered
     print(f"Scraping {len(slugs)} Mercylight profiles…", file=sys.stderr)
 
     records, failures = [], []
