@@ -21,7 +21,7 @@ const TABS = [
   { id: "profile", label: "Profile", icon: "🐶" },
 ];
 
-export default function CarePage({ session, navigate, user, authLoading }) {
+export default function CarePage({ session, user, authLoading }) {
   const [tab, setTab] = useState("home");
   const [mode, setMode] = useState(session?.access_token ? "mine" : "demo");
   const [editingProfile, setEditingProfile] = useState(false);
@@ -36,20 +36,8 @@ export default function CarePage({ session, navigate, user, authLoading }) {
   const activeDog = activeProfile?.dog || SAMPLE_DOG;
   const ownerName = activeProfile?.ownerName || user?.user_metadata?.name || "You";
   const isDemo = mode !== "mine";
-  const openMyCare = () => {
-    if (!accessToken) {
-      navigate("signup", { next: "/care" });
-      return;
-    }
-    setMode("mine");
-    setEditingProfile(false);
-    setTab("home");
-  };
   const editMyCare = () => {
-    if (!accessToken) {
-      navigate("signup", { next: "/care" });
-      return;
-    }
+    if (!accessToken) return;
     setMode("mine");
     setEditingProfile(true);
     setTab("home");
@@ -156,35 +144,21 @@ export default function CarePage({ session, navigate, user, authLoading }) {
           >
             Demo
           </button>
-          <button
-            type="button"
-            className={mode === "mine" ? "active" : ""}
-            onClick={() => {
-              if (!accessToken) {
-                navigate("signup", { next: "/care" });
-                return;
-              }
-              setMode("mine");
-              setEditingProfile(false);
-              setTab("home");
-            }}
-            disabled={authLoading}
-          >
-            My CUB Care
-          </button>
-        </div>
-
-        {mode === "demo" && !accessToken && (
-          <section className="panel care-demo-banner">
-            <div>
-              <h1>This is the CUB Care demo.</h1>
-              <p>Log in or create a free account to enter your own dog details and save your Care plan.</p>
-            </div>
-            <button className="primary-action" type="button" onClick={() => navigate("signup", { next: "/care" })}>
-              Create my account
+          {accessToken && (
+            <button
+              type="button"
+              className={mode === "mine" ? "active" : ""}
+              onClick={() => {
+                setMode("mine");
+                setEditingProfile(false);
+                setTab("home");
+              }}
+              disabled={authLoading}
+            >
+              My CUB Care
             </button>
-          </section>
-        )}
+          )}
+        </div>
 
         {mode === "mine" && (!personalProfile?.dog || editingProfile) ? (
           <CareProfileSetup
@@ -217,11 +191,11 @@ export default function CarePage({ session, navigate, user, authLoading }) {
         </nav>
 
         <div className="care-view" key={`${syncVersion}-${mode}-${tab}-${activeDog.name || "dog"}`}>
-          {tab === "home" && <CareHome goTo={setTab} dog={activeDog} ownerName={ownerName} isDemo={isDemo} onEdit={isDemo ? openMyCare : editMyCare} />}
+          {tab === "home" && <CareHome goTo={setTab} dog={activeDog} ownerName={ownerName} isDemo={isDemo} onEdit={isDemo ? undefined : editMyCare} />}
           {tab === "plan" && <CarePlan dog={activeDog} isDemo={isDemo} />}
           {tab === "scan" && <EmotionScan dog={activeDog} isDemo={isDemo} />}
           {tab === "chat" && <AskCub dog={activeDog} isDemo={isDemo} />}
-          {tab === "profile" && <CareProfile dog={activeDog} ownerName={ownerName} isDemo={isDemo} onEdit={isDemo ? openMyCare : editMyCare} />}
+          {tab === "profile" && <CareProfile dog={activeDog} ownerName={ownerName} isDemo={isDemo} onEdit={isDemo ? undefined : editMyCare} />}
         </div>
           </>
         )}

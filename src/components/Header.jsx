@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { APP_LOGO } from "../lib/matching.js";
 
-export default function Header({ route, navigate, user }) {
+export default function Header({ route, navigate }) {
   const aboutActive = route === "faq" || route === "team";
-  const accountActive = route === "login" || route === "signup" || route === "forgotPassword" || route === "profile";
   const [aboutOpen, setAboutOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -63,9 +62,6 @@ export default function Header({ route, navigate, user }) {
             <button className={route === "team" ? "active" : ""} onClick={() => go("team")}>Our Team</button>
           </div>
         </div>
-        <button className={accountActive ? "active" : ""} onClick={() => go(user ? "profile" : "login")}>
-          {user ? "Profile" : "Log in"}
-        </button>
       </nav>
     </header>
   );

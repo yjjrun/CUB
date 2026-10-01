@@ -50,14 +50,16 @@ export default function CareProfile({
               <b>{profileCompletion}% complete</b>
             </div>
           </div>
-          <div className="care-profile-actions">
-            <button className="ghost-action" type="button" onClick={onEdit}>
-              {isDemo ? "Create my own profile" : "Edit profile"}
-            </button>
-          </div>
+          {onEdit && (
+            <div className="care-profile-actions">
+              <button className="ghost-action" type="button" onClick={onEdit}>
+                Edit profile
+              </button>
+            </div>
+          )}
           <p className="helper-copy">
             {isDemo
-              ? "This is demo sample data. Create an account to build and save your own CUB Care profile."
+              ? "This is sample data for exploring CUB Care."
               : "This profile is saved to your CUB account and is used to personalise the Care demo screens."}
           </p>
         </div>

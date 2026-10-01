@@ -130,10 +130,7 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
   const dogName = dog.name || "This dog";
   const cluster = CLUSTERS[dog.cluster] || CLUSTERS["Golden Hearts"];
   const saveCurrentMatch = async () => {
-    if (!session?.access_token) {
-      navigate("signup", { next: "/match" });
-      return;
-    }
+    if (!session?.access_token) return;
     setSaveStatus("");
     setSaveError("");
     try {
@@ -161,18 +158,6 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
           <button type="button" className="link-action" onClick={onRestart}>Change my answers &rsaquo;</button>
         </div>
 
-        {!session && (
-          <section className="match-account-cta" aria-label="Save your matches">
-            <div>
-              <h2>Your matches are ready!</h2>
-              <p>Create a free account to save them, open CUB Care, and keep your favourites across devices.</p>
-            </div>
-            <button type="button" className="primary-action" onClick={() => navigate("signup", { next: "/match" })}>
-              Create account
-            </button>
-          </section>
-        )}
-
         <div className="match-avatars">
           {top.map((m, i) => (
             <button
@@ -199,9 +184,11 @@ function MatchResults({ dogs, profile, selected, setSelected, onRestart, navigat
               </div>
               <div className="match-actions-row">
                 <a className="primary-action meet-btn" href={dog.contactUrl} target="_blank" rel="noreferrer noopener">Meet {dogName}</a>
-                <button className="secondary-outline-action save-match-action" type="button" onClick={saveCurrentMatch}>
-                  Save match
-                </button>
+                {session?.access_token && (
+                  <button className="secondary-outline-action save-match-action" type="button" onClick={saveCurrentMatch}>
+                    Save match
+                  </button>
+                )}
               </div>
             </div>
             {saveStatus && <p className="notice success">{saveStatus}</p>}

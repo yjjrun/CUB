@@ -71,9 +71,11 @@ export default function CareHome({
             <b>{dog.name || "Your dog"}</b>
             <span>{dog.location || "Location not set"}</span>
           </figcaption>
-          <button className="care-switch-dog" type="button" onClick={onEdit}>
-            {isDemo ? "+ Create my own" : "Edit dog profile"}
-          </button>
+          {onEdit && (
+            <button className="care-switch-dog" type="button" onClick={onEdit}>
+              Edit dog profile
+            </button>
+          )}
         </figure>
       </section>
 

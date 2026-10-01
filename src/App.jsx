@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
 import AdminPage from "./pages/AdminPage.jsx";
 import CarePage from "./pages/CarePage.jsx";
+import Footer from "./components/Footer.jsx";
 import Header from "./components/Header.jsx";
 import Partners from "./components/Partners.jsx";
 import FaqPage from "./pages/FaqPage.jsx";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import Home from "./pages/Home.jsx";
-import LoginPage from "./pages/LoginPage.jsx";
 import MatchPage from "./pages/MatchPage.jsx";
 import PartnerPage from "./pages/PartnerPage.jsx";
-import ProfilePage from "./pages/ProfilePage.jsx";
-import SignupPage from "./pages/SignupPage.jsx";
 import TeamPage from "./pages/TeamPage.jsx";
 import { useAuth } from "./lib/auth.jsx";
 import { ADOPTER_FAQS, MATCHING_FAQS } from "./lib/faq.js";
@@ -54,28 +51,9 @@ const SEO = {
     title: "CUB Care | Daily Care for Your Dog",
     description: "CUB Care helps adopters look after their dog with personalised nutrition, exercise, enrichment, and health guidance, plus an emotion scan and care chatbot.",
   },
-  login: {
-    path: "/login",
-    title: "Log In | CUB",
-    description: "Log in to CUB to save dog matches, favourites, reminders, scans, and care checklists.",
-  },
-  signup: {
-    path: "/signup",
-    title: "Create Account | CUB",
-    description: "Create a free CUB account to save dog matches and keep CUB Care in sync across devices.",
-  },
-  forgotPassword: {
-    path: "/forgot-password",
-    title: "Reset Password | CUB",
-    description: "Reset your CUB account password securely.",
-  },
-  profile: {
-    path: "/profile",
-    title: "Profile | CUB",
-    description: "Manage your CUB account, saved matches, and CUB Care access.",
-    robots: "noindex,nofollow",
-  },
 };
+
+const RETIRED_ACCOUNT_PATHS = new Set(["/login", "/signup", "/forgot-password", "/profile"]);
 
 function setMeta(name, content, attr = "name") {
   let tag = document.head.querySelector(`meta[${attr}="${name}"]`);
@@ -129,10 +107,6 @@ function setRouteJsonLd(route, url) {
 function routeFromPath(pathname) {
   if (pathname === "/admin") return "admin";
   if (pathname === "/care") return "care";
-  if (pathname === "/login") return "login";
-  if (pathname === "/signup") return "signup";
-  if (pathname === "/forgot-password") return "forgotPassword";
-  if (pathname === "/profile") return "profile";
   if (pathname === "/match") return "match";
   if (pathname === "/partner" || pathname === "/shelter") return "partner";
   if (pathname === "/faq" || pathname === "/faqs" || pathname === "/about/faq") return "faq";
@@ -142,10 +116,23 @@ function routeFromPath(pathname) {
 
 export default function App() {
   const auth = useAuth();
-  const [route, setRoute] = useState(routeFromPath(window.location.pathname));
+  const [route, setRoute] = useState(() => {
+    if (RETIRED_ACCOUNT_PATHS.has(window.location.pathname)) {
+      window.history.replaceState({}, "", "/");
+      return "home";
+    }
+    return routeFromPath(window.location.pathname);
+  });
 
   useEffect(() => {
-    const onPop = () => setRoute(routeFromPath(window.location.pathname));
+    const onPop = () => {
+      if (RETIRED_ACCOUNT_PATHS.has(window.location.pathname)) {
+        window.history.replaceState({}, "", "/");
+        setRoute("home");
+        return;
+      }
+      setRoute(routeFromPath(window.location.pathname));
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
@@ -165,51 +152,38 @@ export default function App() {
     setRouteJsonLd(route, url);
   }, [route]);
 
-  const navigate = (next, options = {}) => {
-    let path = next === "match"
+  const navigate = (next) => {
+    const destination = ["login", "signup", "forgotPassword", "profile"].includes(next) ? "home" : next;
+    const path = destination === "match"
       ? "/match"
-      : next === "partner"
+      : destination === "partner"
         ? "/partner"
-        : next === "faq"
+        : destination === "faq"
           ? "/about/faq"
-          : next === "team"
+          : destination === "team"
             ? "/about/team"
-            : next === "admin"
+            : destination === "admin"
               ? "/admin"
-              : next === "care"
+              : destination === "care"
                 ? "/care"
-                : next === "login"
-                  ? "/login"
-                  : next === "signup"
-                    ? "/signup"
-                    : next === "forgotPassword"
-                      ? "/forgot-password"
-                      : next === "profile"
-                        ? "/profile"
-                        : "/";
-    if ((next === "login" || next === "signup") && options.next) {
-      path += `?next=${encodeURIComponent(options.next)}`;
-    }
+                : "/";
     window.history.pushState({}, "", path);
-    setRoute(next);
+    setRoute(destination);
     window.scrollTo(0, 0);
   };
 
   return (
     <>
-      <Header route={route} navigate={navigate} user={auth.user} />
+      <Header route={route} navigate={navigate} />
       {route === "home" && <Home navigate={navigate} />}
       {route === "match" && <MatchPage navigate={navigate} session={auth.session} />}
       {route === "partner" && <PartnerPage navigate={navigate} />}
       {route === "faq" && <FaqPage />}
       {route === "team" && <TeamPage />}
       {route === "admin" && <AdminPage />}
-      {route === "login" && <LoginPage navigate={navigate} />}
-      {route === "signup" && <SignupPage navigate={navigate} />}
-      {route === "forgotPassword" && <ForgotPasswordPage navigate={navigate} />}
-      {route === "profile" && <ProfilePage navigate={navigate} />}
-      {route === "care" && <CarePage session={auth.session} navigate={navigate} user={auth.user} authLoading={auth.loading} />}
+      {route === "care" && <CarePage session={auth.session} user={auth.user} authLoading={auth.loading} />}
       {route !== "care" && <Partners />}
+      <Footer />
     </>
   );
 }

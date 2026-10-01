@@ -1012,6 +1012,19 @@ img {
   width: clamp(160px, 18vw, 260px);
   height: 108px;
   flex: 0 0 auto;
+  color: inherit;
+  text-decoration: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.partner-logo:hover {
+  opacity: 0.78;
+  transform: translateY(-2px);
+}
+
+.partner-logo:focus-visible {
+  outline: 3px solid var(--sage);
+  outline-offset: 5px;
 }
 
 .partner-logo img {
@@ -1035,6 +1048,93 @@ img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.site-footer {
+  width: 100%;
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.footer-inner,
+.footer-bottom {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding-right: 56px;
+  padding-left: 56px;
+}
+
+.footer-inner {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.5fr) repeat(2, minmax(180px, 1fr));
+  gap: 48px;
+  padding-top: 42px;
+  padding-bottom: 36px;
+}
+
+.footer-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.footer-identity img {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.footer-identity div,
+.footer-column {
+  display: grid;
+  align-content: start;
+  gap: 9px;
+}
+
+.footer-identity strong {
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.footer-identity span {
+  color: rgba(251, 247, 241, 0.72);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.footer-column h2 {
+  margin: 0 0 4px;
+  color: var(--cream);
+  font-size: 0.88rem;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.footer-column a {
+  width: fit-content;
+  color: rgba(251, 247, 241, 0.78);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  text-decoration-color: rgba(230, 163, 58, 0.5);
+  text-underline-offset: 4px;
+}
+
+.footer-column a:hover,
+.footer-column a:focus-visible {
+  color: var(--gold-soft);
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 18px;
+  padding-bottom: 22px;
+  border-top: 1px solid rgba(251, 247, 241, 0.14);
+  color: rgba(251, 247, 241, 0.56);
+  font-size: 0.78rem;
 }
 
 @keyframes partners-scroll {
@@ -1947,6 +2047,24 @@ input[type="range"] {
 
   .partners-inner {
     padding: 0 14px;
+  }
+
+  .footer-inner,
+  .footer-bottom {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .footer-inner {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding-top: 34px;
+    padding-bottom: 30px;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    gap: 6px;
   }
 
   .intro-strip h1 {
